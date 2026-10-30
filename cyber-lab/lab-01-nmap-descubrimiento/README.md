@@ -25,7 +25,7 @@ Kali tiene dos tarjetas: `eth0` en NAT y `eth1` en Host-only. Escaneo la red Hos
 ```bash
 sudo nmap -sn 192.168.163.0/24
 ```
-- `-sn` significa "scan, no port scan": solo comprueba qué equipos responden, sin mirar puertos.
+- `-sn` desactiva el escaneo de puertos (antes se llamaba "ping scan", `-sP`): solo comprueba qué equipos responden.
 - Con `sudo`, nmap usa ARP en la red local, que es más fiable que un ping.
 
 Resultado: **3 hosts up** (`.1`, `.254` y `.128`). Ubuntu (`.129`) no apareció.
@@ -55,7 +55,7 @@ La predicción de 2 equipos **no fue correcta**: aparecieron 4. Kali y Ubuntu es
 - `nmap -sn` descubre todo lo que responde en la red, no solo las máquinas que yo creé.
 - Un host que no aparece puede estar simplemente apagado. Antes de sacar conclusiones hay que comprobar que está encendido.
 - El prefijo de la MAC ayuda a identificar equipos: `00:50:56` es la infraestructura de VMware (portátil y DHCP) y `00:0C:29` es una máquina virtual.
-- Kali no muestra MAC para sí misma porque nmap no la necesita para hablar consigo misma.
+- nmap no muestra la MAC de Kali porque es la propia máquina que escanea: no necesita resolver su propia MAC por ARP.
 
 ## Siguiente paso
 Lab 2: puertos y servicios con nmap.
