@@ -26,7 +26,7 @@ Red del lab: Host-only VMnet1, `192.168.163.0/24`, aislada de internet.
 |-----|------|--------|
 | [Lab 0](lab-00-ssh/) | SSH en Ubuntu Server y snapshot base | Completado |
 | [Lab 1](lab-01-nmap-descubrimiento/) | nmap: descubrimiento de equipos | Completado |
-| Lab 2 | nmap: puertos y servicios | Pendiente |
+| [Lab 2](lab-02-nmap-puertos-servicios/) | nmap: puertos, servicios y versiones | Completado |
 | Lab 3 | Wireshark básico | Pendiente |
 | Lab 4 | nmap visto desde Wireshark | Pendiente |
 | Lab 5 | Tráfico en claro frente a cifrado | Pendiente |
