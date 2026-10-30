@@ -58,4 +58,4 @@ La predicción de 2 equipos **no fue correcta**: aparecieron 4. Kali y Ubuntu es
 - nmap no muestra la MAC de Kali porque es la propia máquina que escanea: no necesita resolver su propia MAC por ARP.
 
 ## Siguiente paso
-Lab 2: puertos y servicios con nmap.
+[Lab 2](../lab-02-nmap-puertos-servicios/): puertos y servicios con nmap.
