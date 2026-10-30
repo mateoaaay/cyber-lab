@@ -8,7 +8,6 @@ Laboratorio personal de ciberseguridad y redes montado en VMware Workstation Pro
 - Servicios y `systemd` (SSH, activación por socket)
 - Redes en virtualización: NAT, Host-only, DHCP
 - Reconocimiento de red con `nmap`
-- Análisis de tráfico con Wireshark (próximos labs)
 - Documentación técnica y gestión de snapshots
 
 ## Entorno
