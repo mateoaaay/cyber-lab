@@ -64,12 +64,19 @@ Predicción: con SSH parado, el puerto 22 saldrá `closed`.
 En Ubuntu:
 ```bash
 sudo systemctl stop ssh.socket ssh
+sudo systemctl status ssh
 ```
+El servicio queda `inactive (dead)`.
+
+![SSH parado](img/05-ssh-parado.png)
+
 En Kali:
 ```bash
 sudo nmap -p 22 192.168.163.129
 ```
 Resultado: el puerto 22 sale `closed`.
+
+![nmap puerto 22 cerrado](img/06-nmap-puerto-cerrado.png)
 
 Sale `closed` y no `filtered` porque Ubuntu sigue encendida y contesta con un rechazo. No hay firewall en medio.
 
@@ -80,6 +87,8 @@ sudo systemctl start ssh.socket ssh
 systemctl status ssh
 ```
 Vuelve a salir `active (running)`.
+
+![SSH restaurado](img/07-ssh-restaurado.png)
 
 ## Resultado
 Las predicciones 1 y 3 y la de cierre del puerto fueron correctas. Ubuntu expone un único servicio, OpenSSH, en el puerto 22.
