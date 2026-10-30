@@ -38,9 +38,10 @@ Estado: `active (running)`.
 
 ![Estado de SSH](img/04-ssh-status.png)
 
-## Paso 4: romper SSH a propósito
-Predicción 2: _(escribe aquí lo que pensaste que pasaría al parar SSH)_
+## Predicción 2
+Pensé que, aunque parase el servicio SSH, la conexión desde Kali seguiría funcionando.
 
+## Paso 4: romper SSH a propósito
 En la consola de Ubuntu:
 ```bash
 sudo systemctl stop ssh.socket ssh
@@ -57,6 +58,8 @@ ssh mateo@192.168.163.129
 Resultado: `Connection refused`.
 
 ![Connection refused](img/06-ssh-refused.png)
+
+**Resultado:** la predicción 2 fue incorrecta. Al parar el servicio, la conexión deja de funcionar.
 
 **Qué significa:** la máquina responde, pero no hay ningún proceso escuchando en el puerto 22. No es un problema de red, es que el servicio está parado.
 
@@ -79,4 +82,4 @@ Con SSH activo, apagué la VM y creé el snapshot `Ubuntu limpia` en VMware (VM 
 - Un snapshot en estado limpio permite repetir los labs de ataque sin reinstalar.
 
 ## Siguiente paso
-Lab 1: descubrimiento de equipos con nmap.
+[Lab 1](../lab-01-nmap-descubrimiento/): descubrimiento de equipos con nmap.
