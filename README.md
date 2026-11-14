@@ -32,6 +32,12 @@ Red del lab: Host-only VMnet1, `192.168.163.0/24`, aislada de internet.
 | Lab 5 | Tráfico en claro frente a cifrado | Pendiente |
 | Lab 6 | Writeup final | Pendiente |
 
+## Herramientas
+
+| Herramienta | Para qué sirve |
+|-------------|----------------|
+| [Auditoría Windows](auditoria-windows/) | Script de solo lectura que revisa la seguridad de un equipo Windows desde un USB y guarda los resultados |
+
 ## Método de cada lab
 
 1. Escribir una predicción antes de ejecutar nada.
