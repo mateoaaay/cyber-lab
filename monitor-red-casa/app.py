@@ -64,7 +64,8 @@ def main():
         sondas = SondasDemo()
         contador = ContadorDemo(sondas)
         monitor = Monitor(sondas, contador, conocidos=conocidos(),
-                          intervalos={"salud": 2, "barrido": 10, "puertos": 15})
+                          intervalos={"salud": 2, "barrido": 10, "puertos": 15, "velocidad": 600},
+                          opciones={"velocidad_contratada": 600})
     else:
         from red import SondasReales
         from trafico import ContadorTrafico
@@ -77,7 +78,9 @@ def main():
                 if not contador.iniciar():
                     logging.warning(contador.error)
         os.makedirs(DATOS, exist_ok=True)
-        monitor = Monitor(sondas, contador, ruta_dispositivos=os.path.join(DATOS, "dispositivos.json"))
+        monitor = Monitor(sondas, contador, opciones=config,
+                          ruta_dispositivos=os.path.join(DATOS, "dispositivos.json"),
+                          ruta_consumo=os.path.join(DATOS, "consumo-hoy.json"))
 
     clave = config.get("clave") or os.environ.get("MONITOR_CLAVE")
     nueva = False

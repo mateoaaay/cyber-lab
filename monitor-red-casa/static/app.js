@@ -57,8 +57,9 @@ function valorCifra(id, texto, unidad) {
 function pintarResumen(d) {
   $("demo").hidden = d.modo !== "demo";
   const r = d.red;
+  const enLinea = d.dispositivos.filter((x) => x.en_linea).length;
   $("red").textContent = r.router
-    ? `Router ${r.router} · red ${r.subred ?? "?"} · actualizado ${d.actualizado ? hora(d.actualizado) : "–"}`
+    ? `${r.wifi ? `Wi-Fi «${r.wifi}»` : `Red ${r.subred ?? ""}`} · ${enLinea} dispositivos conectados`
     : "No se encuentra el router";
   const est = d.resumen.estado;
   $("estado").dataset.estado = est;
@@ -73,7 +74,64 @@ function pintarResumen(d) {
   valorCifra("c-router", a.router_ms == null ? "Sin respuesta" : ms(a.router_ms), a.router_ms == null ? "" : "ms");
   valorCifra("c-perdida", a.perdida_pct == null ? null : Math.round(a.perdida_pct).toString(), "%");
   valorCifra("c-dns", a.dns_ms == null ? "Falla" : ms(a.dns_ms), a.dns_ms == null ? "" : "ms");
-  valorCifra("c-disp", String(a.en_linea));
+
+  const an = d.analisis;
+  $("nota").hidden = false;
+  $("nota-num").textContent = an.nota;
+  $("nota-txt").textContent = an.etiqueta;
+
+  $("datos-red").replaceChildren(
+    ...[["Wi-Fi", r.wifi || "desconocido (¿equipo por cable?)"], ["Router", r.router || "–"],
+        ["Red", r.subred || "–"], ["Este equipo", r.ip_local || "–"],
+        ["Actualizado", d.actualizado ? hora(d.actualizado) : "–"]]
+      .flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)]));
+}
+
+// ----------------------------------------------------------------- velocidad
+function pintarVelocidad(d) {
+  const v = d.velocidad;
+  const cifra = (id, mbps) => {
+    $(id).replaceChildren(mbps == null ? "–" : String(Math.round(mbps)));
+    if (mbps != null) $(id).append(el("small", {}, "Mb/s"));
+  };
+  cifra("v-bajada", v.bajada);
+  cifra("v-subida", v.subida);
+  let nota;
+  if (v.midiendo) nota = "Midiendo la velocidad… (unos 15 segundos)";
+  else if (v.error) nota = v.error;
+  else if (v.ts) {
+    nota = `Medido ${hace(v.ts)}`;
+    if (v.contratada && v.bajada != null) nota += ` · ${Math.round((100 * v.bajada) / v.contratada)}% de los ${v.contratada} Mb/s contratados`;
+  } else nota = "Pendiente de la primera medición.";
+  $("v-nota").textContent = nota;
+  const boton = $("medir");
+  boton.disabled = v.midiendo;
+  boton.textContent = v.midiendo ? "Midiendo…" : "Medir ahora";
+
+  $("uso").hidden = !d.trafico.activo;
+  $("uso-ahora").textContent = `↓ ${velocidad(d.uso.bajada_bps)} · ↑ ${velocidad(d.uso.subida_bps)}`;
+  $("uso-hoy").textContent = bytes(d.uso.hoy);
+}
+
+// ------------------------------------------------------------------ análisis
+const ICONO_CHECK = { ok: "✓", mejorar: "!", mal: "✕", info: "i" };
+function pintarAnalisis(an) {
+  $("analisis-nota").textContent = `Nota ${an.nota}/100 · ${an.etiqueta}`;
+  const lista = $("checks");
+  lista.replaceChildren(...an.items.map((it) =>
+    el("li", { "data-e": it.estado },
+      el("span", { class: "ic", "aria-label": it.estado }, ICONO_CHECK[it.estado]),
+      el("div", {},
+        el("div", { class: "t" }, it.titulo),
+        el("div", { class: "d" }, it.detalle),
+        it.consejo && it.estado !== "ok" && it.estado !== "info"
+          ? el("details", { "data-id": it.titulo }, el("summary", {}, "Qué hacer"), el("p", {}, it.consejo))
+          : null))));
+  lista.querySelectorAll("details").forEach((det) => {
+    const id = "a:" + det.dataset.id;
+    det.open = abiertos.has(id);
+    det.addEventListener("toggle", () => (det.open ? abiertos.add(id) : abiertos.delete(id)));
+  });
 }
 
 // ------------------------------------------------------------------- gráfica
@@ -211,6 +269,7 @@ function pintarDispositivos(lista, trafico) {
     `El consumo por dispositivo no está disponible: ${trafico.mensaje || "desactivado"}. ` +
     "Mira el README para activarlo.";
   const max = Math.max(1, ...lista.map((d) => d.bajada_bps + d.subida_bps));
+  $("n-disp").textContent = `· ${lista.filter((d) => d.en_linea).length} conectados`;
 
   $("dispositivos").replaceChildren(...lista.map((d) => {
     const titulo = d.nombre || d.nombre_red || "Sin nombre";
@@ -235,7 +294,7 @@ function pintarDispositivos(lista, trafico) {
       el("div", { class: "barra-wrap" }, trafico.activo ? barra : null),
       el("div", { class: "consumo" },
         trafico.activo ? [el("div", {}, `↓ ${velocidad(d.bajada_bps)}`), el("div", {}, `↑ ${velocidad(d.subida_bps)}`),
-                          el("div", { class: "total" }, `${bytes(d.bajada_total + d.subida_total)} en total`)]
+                          el("div", { class: "total" }, `${bytes(d.hoy_bajada + d.hoy_subida)} hoy`)]
                        : el("span", { class: "tenue" }, "–")));
   }));
 }
@@ -276,6 +335,8 @@ async function actualizar() {
     pintarGrafica(d.historial);
     pintarAlertas(d.alertas, d.recientes);
     pintarDispositivos(d.dispositivos, d.trafico);
+    pintarVelocidad(d);
+    pintarAnalisis(d.analisis);
   } catch (e) {
     $("estado").dataset.estado = "problema";
     $("estado-icono").innerHTML = ICONOS.problema;
@@ -284,6 +345,18 @@ async function actualizar() {
   }
 }
 
+$("medir").addEventListener("click", async () => {
+  $("medir").disabled = true;
+  $("medir").textContent = "Midiendo…";
+  const r = await (await fetch("/api/velocidad", { method: "POST" })).json().catch(() => ({}));
+  if (!r.ok) {
+    $("v-nota").textContent = "Se acaba de medir: espera un minuto para repetirlo.";
+    $("medir").disabled = false;
+    $("medir").textContent = "Medir ahora";
+    return;
+  }
+  actualizar();
+});
 $("grafica").addEventListener("pointermove", moverCursor);
 $("grafica").addEventListener("pointerleave", ocultarCursor);
 window.addEventListener("resize", () => ultimo && pintarGrafica(ultimo.historial));

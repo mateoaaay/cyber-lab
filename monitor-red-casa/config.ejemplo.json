@@ -1,5 +1,8 @@
 {
   "clave": "",
+  "velocidad_contratada": 600,
+  "horas_entre_tests": 3,
+  "nombre_red": "",
   "router": "",
   "subred": "",
   "interfaz": ""

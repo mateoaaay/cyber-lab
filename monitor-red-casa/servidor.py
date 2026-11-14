@@ -15,8 +15,10 @@ from urllib.parse import parse_qs
 log = logging.getLogger("servidor")
 
 ESTATICOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
-DURACION_SESION = 30 * 24 * 3600  # 30 días: en casa no queremos login a diario
-ARCHIVOS_PUBLICOS = {"/estilo.css", "/favicon.svg", "/login.js"}
+DURACION_SESION = 365 * 24 * 3600  # 1 año: la app del móvil no debe pedir login a menudo
+# Lo que el móvil necesita sin sesión para crear el icono de la pantalla de inicio.
+ARCHIVOS_PUBLICOS = {"/estilo.css", "/favicon.svg", "/login.js", "/manifest.webmanifest",
+                     "/icono-192.png", "/icono-512.png", "/apple-touch-icon.png"}
 
 
 class Autenticacion:
@@ -170,6 +172,8 @@ def crear_servidor(monitor, auth, host="0.0.0.0", puerto=8080):
                 return self._redirigir("/login", {"Set-Cookie": "sesion=; Max-Age=0; Path=/"})
             if not self._sesion_ok():
                 return self._json({"error": "sesion"}, 401)
+            if ruta == "/api/velocidad":
+                return self._json({"ok": monitor.medir_velocidad_ahora()})
             if ruta == "/api/nombre":
                 if not self.headers.get("Content-Type", "").startswith("application/json"):
                     return self._json({"error": "tipo"}, 415)

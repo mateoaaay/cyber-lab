@@ -36,7 +36,7 @@ Red del lab: Host-only VMnet1, `192.168.163.0/24`, aislada de internet.
 
 | Proyecto | Qué es |
 |----------|--------|
-| [Monitor de la red de casa](monitor-red-casa/) | App web para la familia: estado de la red en tiempo real, fallos con cómo arreglarlos y consumo por dispositivo |
+| [Monitor de la red de casa](monitor-red-casa/) | App para el móvil de la familia: análisis de la red de casa con velocidad, dispositivos, consumo, fallos y recomendaciones |
 
 ## Método de cada lab
 

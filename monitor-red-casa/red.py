@@ -193,6 +193,15 @@ class SondasReales:
                 self._nombres[ip] = ""
         return self._nombres[ip]
 
+    def nombre_wifi(self):
+        return self.config.get("nombre_red") or nombre_wifi()
+
+    def velocidad(self):
+        return test_velocidad()
+
+    def upnp(self, router):
+        return upnp_responde(router)
+
     def puertos_abiertos(self, ip, puertos=PUERTOS_PELIGROSOS):
         abiertos = []
         for puerto in puertos:
@@ -201,3 +210,97 @@ class SondasReales:
                 if s.connect_ex((ip, puerto)) == 0:
                     abiertos.append(puerto)
         return abiertos
+
+
+# ------------------------------------------------- nombre del Wi-Fi, velocidad, UPnP
+def parsear_ssid(texto):
+    """Saca el nombre del Wi-Fi de iwgetid, nmcli, networksetup o netsh."""
+    for patron in (
+        r"^yes:(.+)$",                                  # nmcli -t -f active,ssid
+        r"Current Wi-Fi Network:\s*(.+)$",              # macOS networksetup
+        r"^\s*SSID\s*:\s*(.+)$",                        # Windows netsh (no BSSID)
+    ):
+        m = re.search(patron, texto, re.MULTILINE)
+        if m:
+            return m.group(1).strip()
+    linea = texto.strip().splitlines()[0] if texto.strip() else ""
+    return linea or None                                # iwgetid -r: solo el nombre
+
+
+def nombre_wifi():
+    if SISTEMA == "Linux":
+        for cmd in (["iwgetid", "-r"], ["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"]):
+            codigo, out = _ejecutar(cmd)
+            if codigo == 0 and out.strip():
+                return parsear_ssid(out)
+    elif SISTEMA == "Darwin":
+        for interfaz in ("en0", "en1"):
+            codigo, out = _ejecutar(["networksetup", "-getairportnetwork", interfaz])
+            if codigo == 0 and "Current Wi-Fi Network" in out:
+                return parsear_ssid(out)
+    else:
+        codigo, out = _ejecutar(["netsh", "wlan", "show", "interfaces"])
+        if codigo == 0:
+            return parsear_ssid(out)
+    return None
+
+
+URL_BAJADA = "https://speed.cloudflare.com/__down?bytes={}"
+URL_SUBIDA = "https://speed.cloudflare.com/__up"
+
+
+def test_velocidad(bytes_bajada=25_000_000, bytes_subida=8_000_000, limite=15):
+    """Mide la velocidad real de internet descargando y subiendo datos a Cloudflare.
+
+    Gasta unos 33 MB por medición. Devuelve (bajada_mbps, subida_mbps).
+    """
+    import urllib.request
+
+    cabeceras = {"User-Agent": "monitor-red-casa"}
+
+    def medir_bajada():
+        inicio, total = time.perf_counter(), 0
+        req = urllib.request.Request(URL_BAJADA.format(bytes_bajada), headers=cabeceras)
+        with urllib.request.urlopen(req, timeout=limite) as r:
+            while True:
+                trozo = r.read(65536)
+                if not trozo:
+                    break
+                total += len(trozo)
+                if time.perf_counter() - inicio > limite:
+                    break
+        return total * 8 / (time.perf_counter() - inicio) / 1e6
+
+    def medir_subida():
+        datos = b"0" * bytes_subida
+        req = urllib.request.Request(URL_SUBIDA, data=datos, method="POST",
+                                     headers=dict(cabeceras, **{"Content-Type": "application/octet-stream"}))
+        inicio = time.perf_counter()
+        with urllib.request.urlopen(req, timeout=limite * 2) as r:
+            r.read()
+        return len(datos) * 8 / (time.perf_counter() - inicio) / 1e6
+
+    return medir_bajada(), medir_subida()
+
+
+def upnp_responde(router, espera=2.0):
+    """True si el router contesta a una búsqueda UPnP (SSDP) en la red local."""
+    mensaje = ("M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\n"
+               'MAN: "ssdp:discover"\r\nMX: 1\r\nST: upnp:rootdevice\r\n\r\n').encode()
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) as s:
+        s.settimeout(0.5)
+        try:
+            s.sendto(mensaje, ("239.255.255.250", 1900))
+        except OSError:
+            return None
+        fin = time.time() + espera
+        while time.time() < fin:
+            try:
+                _datos, (ip, _puerto) = s.recvfrom(2048)
+            except socket.timeout:
+                continue
+            except OSError:
+                return None
+            if ip == router:
+                return True
+    return False

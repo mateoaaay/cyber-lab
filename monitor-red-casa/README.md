@@ -1,13 +1,22 @@
 # Monitor de la red de casa
 
-App web para la gente de casa: ver en tiempo real cómo va la red, qué fallos hay (con cómo arreglarlos) y qué dispositivos consumen más.
+App para el móvil de la gente de casa, con su icono en la pantalla de inicio. Al abrirla te hace un análisis de la red de casa:
 
-![Vista de escritorio en modo demo](img/escritorio.png)
+- **La red:** nombre del Wi-Fi, router y cuántos dispositivos hay conectados.
+- **Velocidad de internet:** test real de bajada y subida en Mb/s, comparado con lo que tienes contratado.
+- **Cada dispositivo:** si está conectado, a qué velocidad va ahora y cuánto ha gastado hoy.
+- **Fallos ahora mismo:** con un "Cómo arreglarlo" en cada uno.
+- **Análisis y recomendaciones:** nota de 0 a 100 de la red y qué mejorar.
+
+<img src="img/movil.png" alt="La app en un iPhone (modo demo)" width="320">
 
 ## Qué hace
 
 | Parte | Cómo lo mide | Cada cuánto |
 |---|---|---|
+| Velocidad de internet | Descarga 25 MB y sube 8 MB a `speed.cloudflare.com` (unos 33 MB por test) | 3 h y con el botón "Medir ahora" |
+| Nombre del Wi-Fi | `iwgetid`/`nmcli` (Linux), `networksetup` (macOS), `netsh` (Windows) | al arrancar |
+| UPnP del router | Búsqueda SSDP en la red local | 30 min |
 | Latencia a internet y al router | `ping` a `1.1.1.1` (o `8.8.8.8`) y al router | 5 s |
 | DNS | Tiempo en resolver `www.google.com` | 5 s |
 | Cortes | % de pings a internet sin respuesta en 5 min | 5 s |
@@ -15,11 +24,13 @@ App web para la gente de casa: ver en tiempo real cómo va la red, qué fallos h
 | Puertos peligrosos | Conexión TCP a 21, 23, 139, 445, 3389, 5900 en cada dispositivo | 10 min |
 | Consumo por dispositivo | Captura de paquetes con `scapy` (opcional, ver abajo) | continuo |
 
-**Fallos que detecta:** router caído, sin internet, DNS caído, conexión inestable, internet lento, Wi-Fi saturado, dispositivo nuevo desconocido y puertos peligrosos abiertos. Cada uno trae un "Cómo arreglarlo".
+**Fallos que detecta:** router caído, sin internet, DNS caído, conexión inestable, internet lento, Wi-Fi saturado, velocidad muy por debajo de lo contratado, dispositivo nuevo desconocido y puertos peligrosos abiertos. Cada uno trae un "Cómo arreglarlo".
+
+**El análisis** revisa la última hora y da una nota de 0 a 100. Mira la estabilidad, el ping, la calidad del Wi-Fi, el DNS, la velocidad frente a la contratada, los puertos peligrosos, el UPnP del router y si todos los dispositivos están identificados. Cada punto mejorable trae un "Qué hacer".
 
 **Solo para la gente de casa:**
 - Rechaza cualquier conexión que no venga de una IP privada (de la red local).
-- Pide una contraseña común para la familia. La sesión dura 30 días.
+- Pide una contraseña común para la familia, una sola vez por móvil: la sesión dura un año.
 - Frena los intentos de contraseña a lo bruto (1 s tras cada fallo, 60 s tras 5 fallos).
 - **No abras el puerto en el router.** La app está pensada para no salir de casa.
 
@@ -30,7 +41,7 @@ cd monitor-red-casa
 MONITOR_CLAVE=prueba python3 app.py --demo
 ```
 
-Abre <http://localhost:8080> y entra con `prueba`. A los 30 s aparece un "intruso" con Telnet abierto. Cada 3 minutos el Wi-Fi simulado se satura 40 s, para que veas los avisos.
+Abre <http://localhost:8080> y entra con `prueba`. La velocidad se mide sola a los 20 s. A los 30 s aparece un "intruso" con Telnet abierto. Cada 3 minutos el Wi-Fi simulado se satura 40 s, para que veas los avisos.
 
 ## Instalarla en casa
 
@@ -42,13 +53,28 @@ cd cyber-lab/monitor-red-casa
 sudo python3 app.py
 ```
 
-La primera vez imprime la **contraseña de la familia** (queda guardada en `datos/clave.txt`) y la dirección a abrir, p. ej. `http://192.168.1.50:8080`. Ábrela desde los móviles de casa y añádela a la pantalla de inicio.
+La primera vez imprime la **contraseña de la familia** (queda guardada en `datos/clave.txt`) y la dirección a abrir, p. ej. `http://192.168.1.50:8080`.
+
+### Ponerla en el móvil de cada uno, con icono
+
+1. Conecta el móvil al Wi-Fi de casa y abre la dirección (p. ej. `http://192.168.1.50:8080`).
+2. Entra con la contraseña de la familia.
+3. Añade el icono:
+   - **iPhone (Safari):** botón Compartir → **Añadir a pantalla de inicio**. Se abre a pantalla completa, como una app.
+   - **Android (Chrome):** menú ⋮ → **Añadir a pantalla de inicio**. Al ir por HTTP, Chrome la abre como una pestaña sin barra de app, pero con su icono.
+
+> Para que el móvil siempre encuentre la app, dale al equipo una **IP fija** en el router ("reserva DHCP"). Si la IP cambia, el icono deja de funcionar.
+
+Fuera de casa la app no funciona, a propósito: solo responde dentro de la red local.
 
 Opciones de `config.json` (copia `config.ejemplo.json`). Todas son opcionales:
 
 | Campo | Para qué |
 |---|---|
 | `clave` | Elegir tú la contraseña (también vale la variable `MONITOR_CLAVE`) |
+| `velocidad_contratada` | Mb/s de bajada de tu tarifa, p. ej. `600`. Sirve para avisar si te dan menos |
+| `horas_entre_tests` | Cada cuánto medir la velocidad (por defecto `3`) |
+| `nombre_red` | Nombre del Wi-Fi a mostrar, si el equipo va por cable y no lo detecta |
 | `router` | IP del router, si no la detecta solo |
 | `subred` | Subred a vigilar, p. ej. `192.168.1.0/24` (por defecto, la /24 del equipo) |
 | `interfaz` | Interfaz donde capturar tráfico, p. ej. `eth0` o `wlan0` |
@@ -103,7 +129,7 @@ Capturar paquetes necesita permisos de administrador; por eso se ejecuta con `su
 | `servidor.py` | Servidor web, contraseña y filtro de IPs de casa |
 | `demo.py` | Red simulada para `--demo` |
 | `static/` | La web (HTML, CSS y JS, sin dependencias externas) |
-| `datos/` | Contraseña, secreto de sesión y nombres de dispositivos (no se sube a git) |
+| `datos/` | Contraseña, secreto de sesión, nombres y consumo de hoy (no se sube a git) |
 
 ## Tests
 
@@ -115,4 +141,6 @@ python3 -m unittest discover -s tests -v
 
 - La web va por HTTP dentro de casa, sin HTTPS. Basta para una red doméstica de confianza; no la expongas a internet.
 - Los móviles con **MAC privada** pueden cambiarla y aparecer como "nuevos". En el móvil, desactiva la MAC privada solo para el Wi-Fi de casa.
-- El historial vive en memoria: al reiniciar la app se pierde la última hora de gráfica. Los nombres sí se guardan.
+- El historial vive en memoria: al reiniciar la app se pierde la última hora de gráfica. Los nombres y el consumo de hoy sí se guardan.
+- Cada test de velocidad gasta unos 33 MB, unos 260 MB al día con el intervalo por defecto. Si tienes datos limitados (4G/5G en casa), sube `horas_entre_tests`.
+- El test mide la velocidad **del equipo donde corre la app**. Si va por Wi-Fi, saldrá menos de lo contratado: para comparar con la tarifa, mejor conectarlo por cable al router.

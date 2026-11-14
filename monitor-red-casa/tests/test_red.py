@@ -6,7 +6,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from red import (mac_es_privada, parsear_arp, parsear_gateway, parsear_ping,
-                 parsear_proc_arp)
+                 parsear_proc_arp, parsear_ssid)
 from servidor import Autenticacion, ip_de_casa
 
 
@@ -41,6 +41,12 @@ class TestParsers(unittest.TestCase):
                  "192.168.1.1      0x1         0x2         a4:91:b1:10:00:01     *        wlan0\n"
                  "192.168.1.9      0x1         0x0         00:00:00:00:00:00     *        wlan0\n")
         self.assertEqual(parsear_proc_arp(texto), {"192.168.1.1": "a4:91:b1:10:00:01"})
+
+    def test_ssid(self):
+        self.assertEqual(parsear_ssid("yes:MiFibra-A3F2\nno:Vecino\n"), "MiFibra-A3F2")
+        self.assertEqual(parsear_ssid("Current Wi-Fi Network: Casa\n"), "Casa")
+        self.assertEqual(parsear_ssid("    SSID   : Casa 5G\n    BSSID  : aa:bb:cc:dd:ee:ff\n"), "Casa 5G")
+        self.assertEqual(parsear_ssid("Casa\n"), "Casa")
 
     def test_mac_privada(self):
         self.assertTrue(mac_es_privada("da:11:4e:10:00:11"))
@@ -89,6 +95,46 @@ class TestMonitor(unittest.TestCase):
         m._evaluar_alertas()
         self.assertNotIn("router", m.alertas)
         self.assertEqual(m.recientes[0]["id"], "router")
+
+
+class TestAnalisis(unittest.TestCase):
+    def _monitor(self, **opciones):
+        from monitor import Monitor
+
+        class Sondas:
+            modo = "test"
+
+        m = Monitor(Sondas(), conocidos={}, opciones=opciones)
+        m.red = {"router": "192.168.1.1", "ip_local": "192.168.1.10", "subred": "192.168.1.0/24", "wifi": "Casa"}
+        return m
+
+    def test_red_sana_saca_buena_nota(self):
+        m = self._monitor(velocidad_contratada=600)
+        for i in range(60):
+            m.historial.append((time.time() + i, 3.0, 20.0, 10.0))
+        m.velocidad.update(bajada=560, subida=280, ts=time.time())
+        m.upnp = False
+        an = m.estado()["analisis"]
+        self.assertEqual(an["nota"], 100)
+        self.assertEqual(an["etiqueta"], "Buena")
+
+    def test_problemas_bajan_la_nota_y_salen_primero(self):
+        m = self._monitor(velocidad_contratada=600)
+        for i in range(60):
+            m.historial.append((time.time() + i, 40.0, None if i % 5 == 0 else 180.0, 10.0))
+        m.velocidad.update(bajada=200, subida=50, ts=time.time())
+        m.upnp = True
+        m._evaluar_alertas()
+        estado = m.estado()
+        an = estado["analisis"]
+        self.assertLess(an["nota"], 60)
+        self.assertEqual(an["items"][0]["estado"], "mal")
+        self.assertIn("velocidad", {a["id"] for a in estado["alertas"]})
+
+    def test_medir_velocidad_no_se_repite_enseguida(self):
+        m = self._monitor()
+        m.velocidad["ts"] = time.time()
+        self.assertFalse(m.medir_velocidad_ahora())
 
 
 if __name__ == "__main__":

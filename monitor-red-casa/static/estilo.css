@@ -55,7 +55,7 @@ body {
   color: var(--tinta);
   font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-.pagina { max-width: 1080px; margin: 0 auto; padding: 16px 16px 48px; }
+.pagina { max-width: 760px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)); }
 h1 { font-size: 20px; margin: 0; }
 h2 { font-size: 15px; margin: 0 0 12px; font-weight: 600; }
 .sub { color: var(--tinta-2); font-size: 13px; }
@@ -77,12 +77,12 @@ button, input { font: inherit; color: inherit; }
 .estado .titulo { font-size: 18px; font-weight: 600; }
 
 /* Tarjetas de cifras */
-.cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 .cifra { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px; padding: 12px 14px; }
 .cifra .nombre { color: var(--tinta-2); font-size: 13px; }
 .cifra .valor { font-size: 26px; font-weight: 600; margin-top: 2px; }
 .cifra .valor small { font-size: 14px; font-weight: 400; color: var(--tinta-2); margin-left: 2px; }
-.cifra .nota { font-size: 12px; color: var(--tenue); }
+.cifra .nota-c { font-size: 12px; color: var(--tenue); }
 
 .panel { background: var(--superficie); border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
 .dos { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
@@ -167,3 +167,36 @@ button, input { font: inherit; color: inherit; }
 .grafica .c1 { stroke: var(--serie-1); fill: var(--serie-1); }
 .grafica .c2 { stroke: var(--serie-2); fill: var(--serie-2); }
 .grafica .linea.c1, .grafica .linea.c2 { fill: none; }
+
+/* ---- App del móvil ---- */
+@media (max-width: 620px) { .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.estado-texto { flex: 1; min-width: 0; }
+.nota { flex: none; text-decoration: none; color: inherit; text-align: center; border: 1px solid var(--borde); border-radius: 12px; padding: 6px 10px; min-width: 64px; }
+.nota-num { display: block; font-size: 24px; font-weight: 700; line-height: 1.1; }
+.nota-txt { display: block; font-size: 11px; color: var(--tinta-2); }
+.panel-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.panel-cab h2 { margin: 0; }
+.boton { background: none; border: 1px solid var(--borde); border-radius: 999px; padding: 6px 14px; cursor: pointer; color: var(--acento); font-weight: 600; font-size: 14px; }
+.boton:disabled { color: var(--tenue); cursor: default; }
+.vel-grande { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 6px; }
+.vel-nombre { font-size: 13px; color: var(--tinta-2); }
+.vel-valor { font-size: 40px; font-weight: 700; line-height: 1.1; }
+.vel-valor small { font-size: 16px; font-weight: 500; color: var(--tinta-2); margin-left: 4px; }
+.uso { display: flex; gap: 8px 20px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rejilla); font-size: 14px; }
+.checks { list-style: none; margin: 0; padding: 0; }
+.checks li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-top: 1px solid var(--rejilla); }
+.checks li:first-child { border-top: 0; padding-top: 0; }
+.checks .ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; margin-top: 1px; }
+.checks [data-e="ok"] .ic { background: var(--bien); }
+.checks [data-e="mejorar"] .ic { background: var(--aviso); color: #0b0b0b; }
+.checks [data-e="mal"] .ic { background: var(--critico); }
+.checks [data-e="info"] .ic { background: var(--eje); color: var(--tinta); }
+.checks .t { font-weight: 600; }
+.checks .d { color: var(--tinta-2); font-size: 13px; }
+.checks details { font-size: 13px; margin-top: 4px; }
+.checks summary { cursor: pointer; color: var(--acento); }
+.checks details p { margin: 6px 0 0; }
+.pie { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--tinta-2); padding: 4px 4px 0; }
+.pie dl { display: grid; grid-template-columns: auto auto; gap: 2px 12px; margin: 0; }
+.pie dt { color: var(--tenue); }
+.pie dd { margin: 0; font-variant-numeric: tabular-nums; }

@@ -2,9 +2,16 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Red de casa</title>
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#2a78d6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Red de casa">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="/estilo.css">
 </head>
 <body>
@@ -14,56 +21,89 @@
       <h1>Red de casa<span class="etiqueta-demo" id="demo" hidden>demo</span></h1>
       <div class="sub" id="red">Conectando…</div>
     </div>
-    <form method="post" action="/logout"><button type="submit">Salir</button></form>
   </header>
 
   <section class="estado" id="estado" data-estado="ok" aria-live="polite">
     <div class="icono" id="estado-icono"></div>
-    <div>
+    <div class="estado-texto">
       <div class="titulo" id="estado-titulo">Cargando…</div>
       <div class="sub" id="estado-sub"></div>
+    </div>
+    <a class="nota" id="nota" href="#analisis" hidden>
+      <span class="nota-num" id="nota-num">–</span>
+      <span class="nota-txt" id="nota-txt">nota</span>
+    </a>
+  </section>
+
+  <section class="panel velocidad">
+    <div class="panel-cab">
+      <h2>Velocidad de internet</h2>
+      <button class="boton" id="medir" type="button">Medir ahora</button>
+    </div>
+    <div class="vel-grande">
+      <div><div class="vel-nombre">↓ Bajada</div><div class="vel-valor" id="v-bajada">–</div></div>
+      <div><div class="vel-nombre">↑ Subida</div><div class="vel-valor" id="v-subida">–</div></div>
+    </div>
+    <div class="sub" id="v-nota">Pendiente de la primera medición.</div>
+    <div class="uso" id="uso" hidden>
+      <div><span class="tenue">Usando ahora</span> <b id="uso-ahora">–</b></div>
+      <div><span class="tenue">Gastado hoy</span> <b id="uso-hoy">–</b></div>
     </div>
   </section>
 
   <section class="cifras">
-    <div class="cifra"><div class="nombre">Internet</div><div class="valor" id="c-internet">–</div><div class="nota">latencia · normal &lt; 50 ms</div></div>
-    <div class="cifra"><div class="nombre">Router / Wi-Fi</div><div class="valor" id="c-router">–</div><div class="nota">latencia · normal &lt; 10 ms</div></div>
-    <div class="cifra"><div class="nombre">Cortes</div><div class="valor" id="c-perdida">–</div><div class="nota">paquetes perdidos, 5 min</div></div>
-    <div class="cifra"><div class="nombre">DNS</div><div class="valor" id="c-dns">–</div><div class="nota">tiempo en resolver webs</div></div>
-    <div class="cifra"><div class="nombre">Conectados</div><div class="valor" id="c-disp">–</div><div class="nota">dispositivos ahora</div></div>
+    <div class="cifra"><div class="nombre">Ping internet</div><div class="valor" id="c-internet">–</div><div class="nota-c">bueno &lt; 50 ms</div></div>
+    <div class="cifra"><div class="nombre">Wi-Fi / router</div><div class="valor" id="c-router">–</div><div class="nota-c">bueno &lt; 10 ms</div></div>
+    <div class="cifra"><div class="nombre">Cortes</div><div class="valor" id="c-perdida">–</div><div class="nota-c">últimos 5 min</div></div>
+    <div class="cifra"><div class="nombre">DNS</div><div class="valor" id="c-dns">–</div><div class="nota-c">bueno &lt; 60 ms</div></div>
   </section>
 
-  <div class="dos">
-    <section class="panel">
-      <h2>Latencia, últimos 10 minutos</h2>
-      <div class="leyenda">
-        <span class="c2">Internet</span>
-        <span class="c1">Router</span>
-      </div>
-      <div class="grafica" id="grafica">
-        <svg id="svg" role="img" aria-label="Latencia a internet y al router en los últimos 10 minutos"></svg>
-        <div class="tooltip" id="tooltip"></div>
-      </div>
-    </section>
-    <section class="panel">
-      <h2>Fallos detectados</h2>
-      <ul class="alertas" id="alertas"></ul>
-      <details class="recientes" id="recientes" hidden>
-        <summary>Resueltos recientemente</summary>
-        <ul id="recientes-lista"></ul>
-      </details>
-    </section>
-  </div>
+  <section class="panel">
+    <h2>Fallos ahora</h2>
+    <ul class="alertas" id="alertas"></ul>
+    <details class="recientes" id="recientes" hidden>
+      <summary>Resueltos recientemente</summary>
+      <ul id="recientes-lista"></ul>
+    </details>
+  </section>
 
   <section class="panel">
-    <h2>Quién está consumiendo</h2>
+    <div class="panel-cab">
+      <h2>Dispositivos <span class="tenue" id="n-disp"></span></h2>
+    </div>
     <div class="leyenda">
       <span class="c1">Bajada</span>
       <span class="c2">Subida</span>
+      <span class="tenue">· toca un nombre para cambiarlo</span>
     </div>
     <div class="aviso-trafico" id="aviso-trafico" hidden></div>
     <div class="lista" id="dispositivos"></div>
   </section>
+
+  <section class="panel" id="analisis">
+    <div class="panel-cab">
+      <h2>Análisis y recomendaciones</h2>
+      <span class="chip" id="analisis-nota"></span>
+    </div>
+    <ul class="checks" id="checks"></ul>
+  </section>
+
+  <section class="panel">
+    <h2>Ping, últimos 10 minutos</h2>
+    <div class="leyenda">
+      <span class="c2">Internet</span>
+      <span class="c1">Router</span>
+    </div>
+    <div class="grafica" id="grafica">
+      <svg id="svg" role="img" aria-label="Latencia a internet y al router en los últimos 10 minutos"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <dl id="datos-red"></dl>
+    <form method="post" action="/logout"><button class="boton" type="submit">Cerrar sesión</button></form>
+  </footer>
 </div>
 <script src="/app.js"></script>
 </body>

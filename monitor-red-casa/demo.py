@@ -75,6 +75,17 @@ class SondasDemo:
     def nombre(self, ip):
         return next((e[3] for e in self._equipos() if e[1] == ip), "")
 
+    def nombre_wifi(self):
+        return "MiFibra-A3F2"
+
+    def velocidad(self):
+        time.sleep(4)  # un test real tarda unos segundos
+        lento = 0.45 if self._saturado() else 1
+        return (round(lento * random.uniform(480, 560), 1), round(lento * random.uniform(250, 300), 1))
+
+    def upnp(self, router):
+        return True  # para enseñar la recomendación
+
     def puertos_abiertos(self, ip, puertos=None):
         return next((list(e[6]) for e in self._equipos() if e[1] == ip), [])
 

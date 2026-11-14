@@ -23,19 +23,28 @@ def _media(valores):
 
 class Monitor:
     def __init__(self, sondas, contador=None, ruta_dispositivos=None,
-                 conocidos=None, intervalos=None):
+                 conocidos=None, intervalos=None, ruta_consumo=None, opciones=None):
         self.sondas = sondas
         self.contador = contador
         self.ruta = ruta_dispositivos
-        self.intervalos = {"salud": 5, "barrido": 60, "puertos": 600}
+        self.ruta_consumo = ruta_consumo
+        self.opciones = opciones or {}
+        self.intervalos = {"salud": 5, "barrido": 60, "puertos": 600, "router": 1800,
+                           "velocidad": 3600 * float(self.opciones.get("horas_entre_tests", 3))}
         self.intervalos.update(intervalos or {})
+        self.velocidad = {"bajada": None, "subida": None, "ts": None,
+                          "midiendo": False, "error": None}
+        self.historial_velocidad = deque(maxlen=56)  # ~1 semana de tests
+        self.upnp = None
+        self.hoy = self._cargar_consumo()
+        self._guardado_consumo = 0
 
         self._lock = threading.Lock()
         self.historial = deque(maxlen=720)          # 1 h a 5 s: (ts, router, internet, dns)
         self.dispositivos = {}                      # mac -> info
         self.alertas = {}                           # id -> alerta activa
         self.recientes = deque(maxlen=30)           # alertas ya resueltas
-        self.red = {"ip_local": None, "router": None, "subred": None}
+        self.red = {"ip_local": None, "router": None, "subred": None, "wifi": None}
         self._ultimo_trafico = (time.time(), {})
 
         self.registro = self._cargar_registro(conocidos)
@@ -63,6 +72,27 @@ class Monitor:
             json.dump(self.registro, f, indent=2, ensure_ascii=False)
         os.replace(tmp, self.ruta)
 
+    def _cargar_consumo(self):
+        vacio = {"fecha": time.strftime("%Y-%m-%d"), "consumo": {}}
+        if self.ruta_consumo and os.path.exists(self.ruta_consumo):
+            try:
+                with open(self.ruta_consumo, encoding="utf-8") as f:
+                    datos = json.load(f)
+                if datos.get("fecha") == vacio["fecha"]:
+                    return datos
+            except (OSError, ValueError):
+                pass
+        return vacio
+
+    def _guardar_consumo(self):
+        if not self.ruta_consumo:
+            return
+        tmp = self.ruta_consumo + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(self.hoy, f)
+        os.replace(tmp, self.ruta_consumo)
+        self._guardado_consumo = time.time()
+
     def poner_nombre(self, mac, nombre):
         nombre = nombre.strip()[:40]
         with self._lock:
@@ -78,12 +108,14 @@ class Monitor:
         self._detectar_red()
         for objetivo, intervalo in ((self._tick_salud, "salud"),
                                     (self._tick_barrido, "barrido"),
-                                    (self._tick_puertos, "puertos")):
+                                    (self._tick_puertos, "puertos"),
+                                    (self._tick_router, "router"),
+                                    (self._tick_velocidad, "velocidad")):
             threading.Thread(target=self._bucle, args=(objetivo, intervalo),
                              daemon=True).start()
 
     def _bucle(self, funcion, clave):
-        if clave == "puertos":
+        if clave in ("puertos", "velocidad"):
             time.sleep(min(20, self.intervalos["barrido"]))  # espera al primer barrido
         while True:
             inicio = time.time()
@@ -96,7 +128,8 @@ class Monitor:
     def _detectar_red(self):
         subred = self.sondas.subred()
         self.red = {"ip_local": self.sondas.ip_local(), "router": self.sondas.gateway(),
-                    "subred": str(subred) if subred else None}
+                    "subred": str(subred) if subred else None,
+                    "wifi": self.sondas.nombre_wifi()}
         self._subred = subred
         log.info("Red detectada: %s", self.red)
 
@@ -157,6 +190,42 @@ class Monitor:
         with self._lock:
             self._evaluar_alertas()
 
+    def _tick_router(self):
+        if self.red["router"]:
+            resultado = self.sondas.upnp(self.red["router"])
+            with self._lock:
+                self.upnp = resultado
+                self._evaluar_alertas()
+
+    def _tick_velocidad(self):
+        self._medir_velocidad()
+
+    def medir_velocidad_ahora(self):
+        """Lanza un test de velocidad en segundo plano (como mucho 1 por minuto)."""
+        with self._lock:
+            if self.velocidad["midiendo"] or time.time() - (self.velocidad["ts"] or 0) < 60:
+                return False
+            self.velocidad["midiendo"] = True
+        threading.Thread(target=self._medir_velocidad, daemon=True).start()
+        return True
+
+    def _medir_velocidad(self):
+        with self._lock:
+            self.velocidad["midiendo"] = True
+        try:
+            bajada, subida = self.sondas.velocidad()
+            error = None
+        except Exception as e:  # sin internet, proxy, etc.
+            bajada = subida = None
+            error = f"No se pudo medir: {e}"
+            log.warning(error)
+        with self._lock:
+            self.velocidad.update({"bajada": bajada, "subida": subida, "ts": time.time(),
+                                   "midiendo": False, "error": error})
+            if bajada is not None:
+                self.historial_velocidad.append((time.time(), bajada, subida))
+            self._evaluar_alertas()
+
     # --------------------------------------------------------------- utilidades
     def _en_subred(self, ip):
         try:
@@ -181,10 +250,19 @@ class Monitor:
             if not d:
                 continue
             b0, s0 = antes.get(ip, (bajada, subida))
-            d["bajada_bps"] = max(0, bajada - b0) * 8 / dt
-            d["subida_bps"] = max(0, subida - s0) * 8 / dt
+            db, ds = max(0, bajada - b0), max(0, subida - s0)
+            d["bajada_bps"] = db * 8 / dt
+            d["subida_bps"] = ds * 8 / dt
             d["bajada_total"], d["subida_total"] = bajada, subida
+            dia = self.hoy["consumo"].setdefault(d["mac"], [0, 0])
+            dia[0] += db
+            dia[1] += ds
         self._ultimo_trafico = (ahora, totales)
+        hoy = time.strftime("%Y-%m-%d")
+        if self.hoy["fecha"] != hoy:
+            self.hoy = {"fecha": hoy, "consumo": {}}
+        if ahora - self._guardado_consumo > 60:
+            self._guardar_consumo()
 
     # ------------------------------------------------------------------ fallos
     def _evaluar_alertas(self):
@@ -237,6 +315,14 @@ class Monitor:
                    "Acerca este equipo al router o usa cable. Cambia el canal Wi-Fi en el "
                    "router, o usa la banda de 5 GHz.")
 
+        contratada = self.opciones.get("velocidad_contratada")
+        v = self.velocidad
+        if contratada and v["bajada"] is not None and v["bajada"] < 0.5 * contratada:
+            alerta("velocidad", "medio", "La velocidad está muy por debajo de lo contratado",
+                   f"Último test: {v['bajada']:.0f} Mb/s de bajada; tienes contratados {contratada:.0f}.",
+                   "Repite la medición con cable. Si con cable también sale baja, reinicia el "
+                   "router; si sigue así, reclama a tu proveedor con estas mediciones.")
+
         sin_nombre = 0
         for mac, d in self.dispositivos.items():
             if not self._en_linea(d):
@@ -269,6 +355,110 @@ class Monitor:
                 self.recientes.appendleft(dict(a, hasta=ahora))
         self.alertas = nuevas
 
+    # ---------------------------------------------------------------- análisis
+    def _analisis(self, disp):
+        """Revisión completa de la red con una nota de 0 a 100 y recomendaciones."""
+        items = []
+
+        def item(estado, titulo, detalle, consejo="", peso=0):
+            items.append({"estado": estado, "titulo": titulo, "detalle": detalle,
+                          "consejo": consejo, "peso": peso})
+
+        h = list(self.historial)  # última hora
+        if len(h) >= 12:
+            perdida = 100 * sum(1 for x in h if x[2] is None) / len(h)
+            minutos = len(h) * self.intervalos["salud"] / 60
+            item("ok" if perdida < 1 else "mejorar" if perdida < 5 else "mal",
+                 "Estabilidad de la conexión",
+                 f"{perdida:.1f}% de cortes en los últimos {minutos:.0f} min.",
+                 "Muchos cortes suelen ser del router o de la línea. Reinicia el router; si "
+                 "continúa, revisa el cable de fibra/ADSL y avisa a tu proveedor.", 20)
+            lat = _media(x[2] for x in h)
+            if lat is not None:
+                item("ok" if lat < 50 else "mejorar" if lat < 100 else "mal",
+                     "Rapidez de respuesta de internet (ping)",
+                     f"{lat:.0f} ms de media (bueno: menos de 50 ms).",
+                     "Un ping alto se nota en juegos y videollamadas. Suele subir cuando alguien "
+                     "descarga o sube algo grande: mira quién consume más.", 15)
+            lat_r = _media(x[1] for x in h)
+            if lat_r is not None:
+                item("ok" if lat_r < 10 else "mejorar" if lat_r < 30 else "mal",
+                     "Calidad del Wi-Fi",
+                     f"El router responde en {lat_r:.0f} ms de media (bueno: menos de 10 ms).",
+                     "Pon el router en un sitio alto y despejado, lejos de microondas y del "
+                     "suelo. Usa la banda de 5 GHz cerca del router y cable para la tele y la "
+                     "consola. En casas grandes, un sistema Wi-Fi mesh ayuda.", 15)
+            dns = [x[3] for x in h]
+            fallos = sum(1 for x in dns if x is None)
+            media_dns = _media(dns)
+            if media_dns is not None or fallos:
+                malo = fallos > len(dns) * 0.05 or (media_dns or 999) > 150
+                item("mal" if malo else "mejorar" if (media_dns or 0) > 60 else "ok",
+                     "DNS (traducir nombres de webs)",
+                     f"{media_dns or 0:.0f} ms de media, {fallos} fallos.",
+                     "Pon en el router los DNS 1.1.1.1 y 9.9.9.9: suelen ser más rápidos que "
+                     "los del proveedor y bloquean webs maliciosas (9.9.9.9).", 10)
+        else:
+            item("info", "Analizando la conexión", "Hacen falta un par de minutos de datos.")
+
+        v, contratada = self.velocidad, self.opciones.get("velocidad_contratada")
+        if v["bajada"] is not None:
+            texto = f"{v['bajada']:.0f} Mb/s de bajada y {v['subida']:.0f} Mb/s de subida."
+            if contratada:
+                r = v["bajada"] / contratada
+                item("ok" if r >= 0.8 else "mejorar" if r >= 0.5 else "mal", "Velocidad de internet",
+                     f"{texto} Contratado: {contratada:.0f} Mb/s ({100 * r:.0f}%).",
+                     "Por Wi-Fi es normal perder velocidad. Si con cable tampoco llega al 80%, "
+                     "reinicia el router y, si sigue, reclama al proveedor.", 15)
+            else:
+                item("ok" if v["bajada"] >= 100 else "mejorar" if v["bajada"] >= 25 else "mal",
+                     "Velocidad de internet",
+                     f"{texto} Con 100 Mb/s o más va sobrada para varias teles en 4K a la vez.",
+                     "Indica tu velocidad contratada en config.json (velocidad_contratada) para "
+                     "comprobar si te dan lo que pagas.", 15)
+        elif v["error"]:
+            item("info", "Velocidad de internet", v["error"])
+        else:
+            item("info", "Velocidad de internet", "Pendiente de la primera medición.")
+
+        con_puertos = [d for d in disp if d["puertos"] and d["en_linea"]]
+        item("mal" if con_puertos else "ok", "Puertos peligrosos abiertos",
+             ("; ".join(f"{d['nombre'] or d['ip']}: " + ", ".join(str(p["puerto"]) for p in d["puertos"])
+                        for d in con_puertos)) if con_puertos else
+             "Ningún equipo tiene abiertos Telnet, FTP, SMB, escritorio remoto ni VNC.",
+             "Desactiva en cada equipo los servicios que no uses (compartir carpetas, escritorio "
+             "remoto…). Si es el router, hazlo desde su panel de administración.", 15)
+
+        if self.upnp is not None:
+            item("mejorar" if self.upnp else "ok", "UPnP en el router",
+                 "Está activado: cualquier programa de casa puede abrir puertos hacia internet "
+                 "sin preguntar." if self.upnp else "Está desactivado.",
+                 "Entra al panel del router y desactiva UPnP. Si alguna consola deja de "
+                 "funcionar online, vuelve a activarlo o abre solo sus puertos a mano.", 5)
+
+        en_linea = [d for d in disp if d["en_linea"]]
+        sin_nombre = [d for d in en_linea if not d["nombre"]]
+        item("mejorar" if sin_nombre else "ok", "Dispositivos identificados",
+             f"{len(en_linea) - len(sin_nombre)} de {len(en_linea)} conectados tienen nombre.",
+             "Pon nombre a cada dispositivo: si aparece uno que nadie conoce, cambia la "
+             "contraseña del Wi-Fi (WPA2/WPA3, mínimo 12 caracteres).", 5)
+
+        total_hoy = sum(d["hoy_bajada"] + d["hoy_subida"] for d in disp)
+        if total_hoy > 0:
+            top = max(disp, key=lambda d: d["hoy_bajada"] + d["hoy_subida"])
+            pct = 100 * (top["hoy_bajada"] + top["hoy_subida"]) / total_hoy
+            item("info", "Quién más ha gastado hoy",
+                 f"{top['nombre'] or top['nombre_red'] or top['ip']}: {pct:.0f}% del consumo de hoy.")
+
+        nota = 100
+        for it in items:
+            nota -= it["peso"] if it["estado"] == "mal" else it["peso"] / 2 if it["estado"] == "mejorar" else 0
+        nota = max(0, round(nota))
+        orden = {"mal": 0, "mejorar": 1, "info": 2, "ok": 3}
+        items.sort(key=lambda it: orden[it["estado"]])
+        return {"nota": nota, "etiqueta": "Buena" if nota >= 85 else "Mejorable" if nota >= 60 else "Mala",
+                "items": items}
+
     # ------------------------------------------------------------------ estado
     def estado(self):
         with self._lock:
@@ -288,10 +478,12 @@ class Monitor:
                                 for p in d.get("puertos", [])],
                     "bajada_bps": d["bajada_bps"], "subida_bps": d["subida_bps"],
                     "bajada_total": d["bajada_total"], "subida_total": d["subida_total"],
+                    "hoy_bajada": self.hoy["consumo"].get(mac, [0, 0])[0],
+                    "hoy_subida": self.hoy["consumo"].get(mac, [0, 0])[1],
                     "primera_vez": reg.get("primera_vez"), "ultima_vez": d.get("ultima_vez"),
                 })
             disp.sort(key=lambda x: (not x["en_linea"], -(x["bajada_bps"] + x["subida_bps"]),
-                                     -(x["bajada_total"] + x["subida_total"]), x["ip"]))
+                                     -(x["hoy_bajada"] + x["hoy_subida"]), x["ip"]))
             alertas = sorted(self.alertas.values(), key=lambda a: (NIVELES[a["nivel"]], a["desde"]))
             peor = alertas[0]["nivel"] if alertas else None
             if peor == "critico":
@@ -317,4 +509,11 @@ class Monitor:
                 "recientes": list(self.recientes)[:10],
                 "dispositivos": disp,
                 "trafico": trafico,
+                "velocidad": dict(self.velocidad,
+                                  contratada=self.opciones.get("velocidad_contratada")),
+                "historial_velocidad": [[round(t), b, s_] for t, b, s_ in self.historial_velocidad],
+                "uso": {"bajada_bps": sum(d["bajada_bps"] for d in disp),
+                        "subida_bps": sum(d["subida_bps"] for d in disp),
+                        "hoy": sum(d["hoy_bajada"] + d["hoy_subida"] for d in disp)},
+                "analisis": self._analisis(disp),
             }
