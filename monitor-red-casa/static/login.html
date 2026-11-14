@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Red de casa</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/estilo.css">
+</head>
+<body>
+<main class="login">
+  <form method="post" action="/login">
+    <h1>Red de casa</h1>
+    <div class="sub">Solo para la gente de casa.</div>
+    <label for="clave">Contraseña</label>
+    <input id="clave" name="clave" type="password" autocomplete="current-password" autofocus required>
+    <button type="submit">Entrar</button>
+    <div class="error" id="error" hidden>Contraseña incorrecta.</div>
+  </form>
+</main>
+<script src="/login.js"></script>
+</body>
+</html>

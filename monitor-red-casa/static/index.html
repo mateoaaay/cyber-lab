@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Red de casa</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/estilo.css">
+</head>
+<body>
+<div class="pagina">
+  <header class="cabecera">
+    <div>
+      <h1>Red de casa<span class="etiqueta-demo" id="demo" hidden>demo</span></h1>
+      <div class="sub" id="red">Conectando…</div>
+    </div>
+    <form method="post" action="/logout"><button type="submit">Salir</button></form>
+  </header>
+
+  <section class="estado" id="estado" data-estado="ok" aria-live="polite">
+    <div class="icono" id="estado-icono"></div>
+    <div>
+      <div class="titulo" id="estado-titulo">Cargando…</div>
+      <div class="sub" id="estado-sub"></div>
+    </div>
+  </section>
+
+  <section class="cifras">
+    <div class="cifra"><div class="nombre">Internet</div><div class="valor" id="c-internet">–</div><div class="nota">latencia · normal &lt; 50 ms</div></div>
+    <div class="cifra"><div class="nombre">Router / Wi-Fi</div><div class="valor" id="c-router">–</div><div class="nota">latencia · normal &lt; 10 ms</div></div>
+    <div class="cifra"><div class="nombre">Cortes</div><div class="valor" id="c-perdida">–</div><div class="nota">paquetes perdidos, 5 min</div></div>
+    <div class="cifra"><div class="nombre">DNS</div><div class="valor" id="c-dns">–</div><div class="nota">tiempo en resolver webs</div></div>
+    <div class="cifra"><div class="nombre">Conectados</div><div class="valor" id="c-disp">–</div><div class="nota">dispositivos ahora</div></div>
+  </section>
+
+  <div class="dos">
+    <section class="panel">
+      <h2>Latencia, últimos 10 minutos</h2>
+      <div class="leyenda">
+        <span class="c2">Internet</span>
+        <span class="c1">Router</span>
+      </div>
+      <div class="grafica" id="grafica">
+        <svg id="svg" role="img" aria-label="Latencia a internet y al router en los últimos 10 minutos"></svg>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Fallos detectados</h2>
+      <ul class="alertas" id="alertas"></ul>
+      <details class="recientes" id="recientes" hidden>
+        <summary>Resueltos recientemente</summary>
+        <ul id="recientes-lista"></ul>
+      </details>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Quién está consumiendo</h2>
+    <div class="leyenda">
+      <span class="c1">Bajada</span>
+      <span class="c2">Subida</span>
+    </div>
+    <div class="aviso-trafico" id="aviso-trafico" hidden></div>
+    <div class="lista" id="dispositivos"></div>
+  </section>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
