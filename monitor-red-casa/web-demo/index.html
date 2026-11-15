@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Red de casa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root {
+  color-scheme: light;
+  --plano: #f9f9f7;
+  --superficie: #fcfcfb;
+  --tinta: #0b0b0b;
+  --tinta-2: #52514e;
+  --tenue: #898781;
+  --rejilla: #e1e0d9;
+  --eje: #c3c2b7;
+  --borde: rgba(11, 11, 11, 0.10);
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --bien: #0ca30c;
+  --bien-texto: #006300;
+  --aviso: #fab219;
+  --serio: #ec835a;
+  --critico: #d03b3b;
+  --acento: #2a78d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plano: #0d0d0d;
+    --superficie: #1a1a19;
+    --tinta: #f0efec;
+    --tinta-2: #c3c2b7;
+    --rejilla: #2c2c2a;
+    --eje: #383835;
+    --borde: rgba(255, 255, 255, 0.10);
+    --serie-1: #3987e5;
+    --serie-2: #d95926;
+    --bien-texto: #0ca30c;
+    --acento: #3987e5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plano: #0d0d0d;
+  --superficie: #1a1a19;
+  --tinta: #f0efec;
+  --tinta-2: #c3c2b7;
+  --rejilla: #2c2c2a;
+  --eje: #383835;
+  --borde: rgba(255, 255, 255, 0.10);
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --bien-texto: #0ca30c;
+  --acento: #3987e5;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--plano);
+  color: var(--tinta);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.pagina { max-width: 760px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)); }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 15px; margin: 0 0 12px; font-weight: 600; }
+.sub { color: var(--tinta-2); font-size: 13px; }
+.tenue { color: var(--tenue); }
+button, input { font: inherit; color: inherit; }
+
+/* Cabecera */
+.cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.cabecera form button { background: none; border: 1px solid var(--borde); border-radius: 8px; padding: 6px 12px; cursor: pointer; color: var(--tinta-2); }
+.etiqueta-demo { font-size: 12px; border: 1px solid var(--borde); border-radius: 999px; padding: 2px 8px; color: var(--tinta-2); margin-left: 8px; vertical-align: middle; }
+
+/* Banner de estado */
+.estado { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 14px; background: var(--superficie); border: 1px solid var(--borde); margin-bottom: 16px; }
+.estado .icono { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #fff; }
+.estado .icono svg { width: 22px; height: 22px; }
+.estado[data-estado="ok"] .icono { background: var(--bien); }
+.estado[data-estado="aviso"] .icono { background: var(--aviso); color: #0b0b0b; }
+.estado[data-estado="problema"] .icono { background: var(--critico); }
+.estado .titulo { font-size: 18px; font-weight: 600; }
+
+/* Tarjetas de cifras */
+.cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.cifra { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px; padding: 12px 14px; }
+.cifra .nombre { color: var(--tinta-2); font-size: 13px; }
+.cifra .valor { font-size: 26px; font-weight: 600; margin-top: 2px; }
+.cifra .valor small { font-size: 14px; font-weight: 400; color: var(--tinta-2); margin-left: 2px; }
+.cifra .nota-c { font-size: 12px; color: var(--tenue); }
+
+.panel { background: var(--superficie); border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+.dos { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
+.dos > .panel { margin-bottom: 0; min-width: 0; }
+.dos { margin-bottom: 16px; }
+@media (max-width: 820px) { .dos { grid-template-columns: 1fr; } }
+
+/* Gráfica de latencia */
+.leyenda { display: flex; gap: 16px; font-size: 13px; color: var(--tinta-2); margin: -4px 0 8px; flex-wrap: wrap; }
+.leyenda span::before { content: ""; display: inline-block; width: 12px; height: 2px; border-radius: 2px; vertical-align: middle; margin-right: 6px; background: var(--c); }
+.grafica { position: relative; }
+.grafica svg { display: block; width: 100%; height: 200px; overflow: visible; }
+.grafica .rejilla { stroke: var(--rejilla); stroke-width: 1; }
+.grafica .base { stroke: var(--eje); stroke-width: 1; }
+.grafica .eje { fill: var(--tenue); font-size: 11px; font-variant-numeric: tabular-nums; }
+.grafica .linea { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.grafica .etq { font-size: 11px; fill: var(--tinta-2); }
+.grafica .cruz { stroke: var(--eje); stroke-width: 1; }
+.grafica .punto { stroke: var(--superficie); stroke-width: 2; }
+.tooltip { position: absolute; pointer-events: none; background: var(--superficie); border: 1px solid var(--borde); border-radius: 8px; padding: 6px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12); white-space: nowrap; display: none; z-index: 2; }
+.tooltip b { font-weight: 600; }
+.tooltip .fila::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 6px; }
+
+/* Fallos */
+.alertas { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.alerta { border: 1px solid var(--borde); border-left: 4px solid var(--c); border-radius: 10px; padding: 10px 12px; }
+.alerta[data-nivel="critico"] { --c: var(--critico); }
+.alerta[data-nivel="alto"] { --c: var(--serio); }
+.alerta[data-nivel="medio"] { --c: var(--aviso); }
+.alerta[data-nivel="info"] { --c: var(--eje); }
+.alerta .t { font-weight: 600; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; }
+.alerta .nivel { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--tinta-2); font-weight: 500; white-space: nowrap; }
+.alerta .d { color: var(--tinta-2); font-size: 13px; margin-top: 2px; }
+.alerta details { margin-top: 6px; font-size: 13px; }
+.alerta summary { cursor: pointer; color: var(--acento); }
+.alerta details p { margin: 6px 0 0; }
+.vacio { color: var(--tinta-2); font-size: 14px; display: flex; gap: 8px; align-items: center; }
+.vacio::before { content: "✓"; color: var(--bien-texto); font-weight: 700; }
+.recientes { margin-top: 14px; font-size: 13px; color: var(--tinta-2); }
+.recientes summary { cursor: pointer; }
+.recientes ul { padding-left: 18px; margin: 6px 0 0; }
+
+/* Dispositivos */
+.aviso-trafico { font-size: 13px; color: var(--tinta-2); background: var(--plano); border: 1px dashed var(--borde); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; }
+.lista { display: grid; gap: 2px; }
+.disp { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr) 120px; gap: 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--rejilla); }
+.disp:first-child { border-top: 0; }
+.disp.apagado { opacity: .5; }
+.disp .quien { min-width: 0; }
+.disp .nom { font-weight: 600; display: flex; gap: 6px; align-items: center; min-width: 0; }
+.disp .nom button { background: none; border: 0; padding: 0; cursor: pointer; font-weight: 600; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px dashed var(--eje); }
+.disp .nom button.sin { color: var(--tinta-2); font-style: italic; font-weight: 500; }
+.disp .nom input { width: 100%; padding: 2px 6px; border: 1px solid var(--acento); border-radius: 6px; background: var(--superficie); }
+.disp .meta { font-size: 12px; color: var(--tenue); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.punto-linea { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--eje); }
+.punto-linea.on { background: var(--bien); }
+.chip { font-size: 11px; border: 1px solid var(--borde); border-radius: 999px; padding: 0 6px; color: var(--tinta-2); font-weight: 500; white-space: nowrap; }
+.chip.peligro { border-color: var(--serio); }
+.barra { height: 8px; background: var(--rejilla); border-radius: 4px; overflow: hidden; display: flex; gap: 2px; }
+.barra i { display: block; height: 100%; border-radius: 4px; }
+.barra .b { background: var(--serie-1); }
+.barra .s { background: var(--serie-2); }
+.consumo { font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.consumo .total { font-size: 11px; color: var(--tenue); }
+@media (max-width: 620px) {
+  .disp { grid-template-columns: minmax(0, 1fr) 96px; }
+  .disp .barra-wrap { grid-column: 1 / -1; order: 3; }
+}
+
+/* Login */
+.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login form { background: var(--superficie); border: 1px solid var(--borde); border-radius: 16px; padding: 24px; width: 100%; max-width: 360px; }
+.login h1 { margin-bottom: 4px; }
+.login label { display: block; font-size: 13px; color: var(--tinta-2); margin: 18px 0 6px; }
+.login input { width: 100%; padding: 10px 12px; border: 1px solid var(--eje); border-radius: 10px; background: var(--plano); }
+.login button { width: 100%; margin-top: 14px; padding: 10px; border: 0; border-radius: 10px; background: var(--acento); color: #fff; font-weight: 600; cursor: pointer; }
+.login .error { color: var(--critico); font-size: 13px; margin-top: 10px; }
+
+/* Identidad de series (sin estilos en línea: la CSP los bloquea) */
+.c1 { --c: var(--serie-1); }
+.c2 { --c: var(--serie-2); }
+.grafica .c1 { stroke: var(--serie-1); fill: var(--serie-1); }
+.grafica .c2 { stroke: var(--serie-2); fill: var(--serie-2); }
+.grafica .linea.c1, .grafica .linea.c2 { fill: none; }
+
+/* ---- App del móvil ---- */
+@media (max-width: 620px) { .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.estado-texto { flex: 1; min-width: 0; }
+.nota { flex: none; text-decoration: none; color: inherit; text-align: center; border: 1px solid var(--borde); border-radius: 12px; padding: 6px 10px; min-width: 64px; }
+.nota-num { display: block; font-size: 24px; font-weight: 700; line-height: 1.1; }
+.nota-txt { display: block; font-size: 11px; color: var(--tinta-2); }
+.panel-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.panel-cab h2 { margin: 0; }
+.boton { background: none; border: 1px solid var(--borde); border-radius: 999px; padding: 6px 14px; cursor: pointer; color: var(--acento); font-weight: 600; font-size: 14px; }
+.boton:disabled { color: var(--tenue); cursor: default; }
+.vel-grande { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 6px; }
+.vel-nombre { font-size: 13px; color: var(--tinta-2); }
+.vel-valor { font-size: 40px; font-weight: 700; line-height: 1.1; }
+.vel-valor small { font-size: 16px; font-weight: 500; color: var(--tinta-2); margin-left: 4px; }
+.uso { display: flex; gap: 8px 20px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rejilla); font-size: 14px; }
+.checks { list-style: none; margin: 0; padding: 0; }
+.checks li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-top: 1px solid var(--rejilla); }
+.checks li:first-child { border-top: 0; padding-top: 0; }
+.checks .ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; margin-top: 1px; }
+.checks [data-e="ok"] .ic { background: var(--bien); }
+.checks [data-e="mejorar"] .ic { background: var(--aviso); color: #0b0b0b; }
+.checks [data-e="mal"] .ic { background: var(--critico); }
+.checks [data-e="info"] .ic { background: var(--eje); color: var(--tinta); }
+.checks .t { font-weight: 600; }
+.checks .d { color: var(--tinta-2); font-size: 13px; }
+.checks details { font-size: 13px; margin-top: 4px; }
+.checks summary { cursor: pointer; color: var(--acento); }
+.checks details p { margin: 6px 0 0; }
+.pie { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--tinta-2); padding: 4px 4px 0; }
+.pie dl { display: grid; grid-template-columns: auto auto; gap: 2px 12px; margin: 0; }
+.pie dt { color: var(--tenue); }
+.pie dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.pagina { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.aviso-demo { font-size: 14px; background: var(--superficie); border: 1px dashed var(--eje); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; color: var(--tinta-2); }
+.aviso-demo b { color: var(--tinta); }
+.aviso-demo a { color: var(--acento); }
+
+</style>
+</head>
+<body>
+<div class="pagina">
+  <header class="cabecera">
+    <div>
+      <h1>Red de casa<span class="etiqueta-demo" id="demo" hidden>demo</span></h1>
+      <div class="sub" id="red">Conectando…</div>
+    </div>
+  </header>
+
+  <section class="aviso-demo">
+    <b>Esto es una demo con una red de casa simulada.</b>
+    Los datos se inventan en tu navegador; no se mira tu red. Para analizar la red de tu casa de
+    verdad, la app se instala en un ordenador de casa: <a href="https://github.com/mateoaaay/cyber-lab/tree/claude/sharp-curie-yuf4eo/monitor-red-casa" target="_blank" rel="noopener">instrucciones</a>.
+  </section>
+
+
+  <section class="estado" id="estado" data-estado="ok" aria-live="polite">
+    <div class="icono" id="estado-icono"></div>
+    <div class="estado-texto">
+      <div class="titulo" id="estado-titulo">Cargando…</div>
+      <div class="sub" id="estado-sub"></div>
+    </div>
+    <a class="nota" id="nota" href="#analisis" hidden>
+      <span class="nota-num" id="nota-num">–</span>
+      <span class="nota-txt" id="nota-txt">nota</span>
+    </a>
+  </section>
+
+  <section class="panel velocidad">
+    <div class="panel-cab">
+      <h2>Velocidad de internet</h2>
+      <button class="boton" id="medir" type="button">Medir ahora</button>
+    </div>
+    <div class="vel-grande">
+      <div><div class="vel-nombre">↓ Bajada</div><div class="vel-valor" id="v-bajada">–</div></div>
+      <div><div class="vel-nombre">↑ Subida</div><div class="vel-valor" id="v-subida">–</div></div>
+    </div>
+    <div class="sub" id="v-nota">Pendiente de la primera medición.</div>
+    <div class="uso" id="uso" hidden>
+      <div><span class="tenue">Usando ahora</span> <b id="uso-ahora">–</b></div>
+      <div><span class="tenue">Gastado hoy</span> <b id="uso-hoy">–</b></div>
+    </div>
+  </section>
+
+  <section class="cifras">
+    <div class="cifra"><div class="nombre">Ping internet</div><div class="valor" id="c-internet">–</div><div class="nota-c">bueno &lt; 50 ms</div></div>
+    <div class="cifra"><div class="nombre">Wi-Fi / router</div><div class="valor" id="c-router">–</div><div class="nota-c">bueno &lt; 10 ms</div></div>
+    <div class="cifra"><div class="nombre">Cortes</div><div class="valor" id="c-perdida">–</div><div class="nota-c">últimos 5 min</div></div>
+    <div class="cifra"><div class="nombre">DNS</div><div class="valor" id="c-dns">–</div><div class="nota-c">bueno &lt; 60 ms</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Fallos ahora</h2>
+    <ul class="alertas" id="alertas"></ul>
+    <details class="recientes" id="recientes" hidden>
+      <summary>Resueltos recientemente</summary>
+      <ul id="recientes-lista"></ul>
+    </details>
+  </section>
+
+  <section class="panel">
+    <div class="panel-cab">
+      <h2>Dispositivos <span class="tenue" id="n-disp"></span></h2>
+    </div>
+    <div class="leyenda">
+      <span class="c1">Bajada</span>
+      <span class="c2">Subida</span>
+      <span class="tenue">· toca un nombre para cambiarlo</span>
+    </div>
+    <div class="aviso-trafico" id="aviso-trafico" hidden></div>
+    <div class="lista" id="dispositivos"></div>
+  </section>
+
+  <section class="panel" id="analisis">
+    <div class="panel-cab">
+      <h2>Análisis y recomendaciones</h2>
+      <span class="chip" id="analisis-nota"></span>
+    </div>
+    <ul class="checks" id="checks"></ul>
+  </section>
+
+  <section class="panel">
+    <h2>Ping, últimos 10 minutos</h2>
+    <div class="leyenda">
+      <span class="c2">Internet</span>
+      <span class="c1">Router</span>
+    </div>
+    <div class="grafica" id="grafica">
+      <svg id="svg" role="img" aria-label="Latencia a internet y al router en los últimos 10 minutos"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <dl id="datos-red"></dl>
+    <span class="tenue">Demo · datos simulados</span>
+  </footer>
+</div>
+<script>
+// Red de casa simulada que corre entera en el navegador, para compartir la app
+// con un link. Sustituye a fetch() para las rutas /api/* y genera los mismos
+// datos que el servidor Python (ver demo.py y monitor.py).
+"use strict";
+
+(() => {
+  const AHORA = () => Date.now() / 1000;
+  const T0 = AHORA();
+  const ROUTER = "192.168.1.1";
+  const CONTRATADA = 600;
+  // mac, ip, nombre, nombre de red, Mb/s bajada, Mb/s subida, puertos abiertos
+  const EQUIPOS = [
+    ["a4:91:b1:10:00:01", "192.168.1.1", "Router", "router", 0, 0, []],
+    ["3c:22:fb:10:00:10", "192.168.1.10", "Portátil", "portatil", 4, 1.2, []],
+    ["da:11:4e:10:00:11", "192.168.1.11", "Móvil de Ana", "", 1.5, 0.3, []],
+    ["ca:5d:20:10:00:12", "192.168.1.12", "Móvil de Luis", "", 0.8, 0.2, []],
+    ["70:2a:d5:10:00:20", "192.168.1.20", "Smart TV salón", "tv-salon", 18, 0.4, []],
+    ["00:d9:d1:10:00:21", "192.168.1.21", "Consola", "consola", 6, 0.8, []],
+    ["f0:27:2d:10:00:30", "192.168.1.30", "Altavoz", "", 0.3, 0.05, []],
+    ["b8:27:eb:10:00:40", "192.168.1.40", "Ordenador sobremesa", "sobremesa", 2, 0.5, [445]],
+  ];
+  const INTRUSO = ["5e:8a:01:10:00:66", "192.168.1.66", "", "", 3, 2.5, [23]];
+  const DESC = { 21: "FTP (contraseñas en claro)", 23: "Telnet (contraseñas en claro)",
+    139: "NetBIOS (compartición antigua de Windows)", 445: "SMB (carpetas compartidas)",
+    3389: "Escritorio remoto de Windows", 5900: "VNC (control remoto)" };
+  const NIVELES = { critico: 0, alto: 1, medio: 2, info: 3 };
+
+  const nombres = Object.fromEntries(EQUIPOS.map((e) => [e[0], e[2]]));
+  const hoy = Object.fromEntries(EQUIPOS.map((e) => [e[0], [e[4] * 3e6 * 60, e[5] * 3e6 * 60]]));
+  const historial = [];
+  let alertas = {};
+  const recientes = [];
+  const intrusoDesde = T0 + 30;
+  const velocidad = { bajada: 538, subida: 287, ts: T0 - 12 * 60, midiendo: false, error: null };
+  const uso = {};
+
+  const media = (xs) => { const v = xs.filter((x) => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const saturado = (t) => (t - T0 + 90) % 180 > 140; // cada 3 min, 40 s de Wi-Fi saturado
+  const equipos = (t = AHORA()) => (t >= intrusoDesde ? [...EQUIPOS, INTRUSO] : EQUIPOS);
+
+  function muestra(t) {
+    const sat = saturado(t);
+    const router = +(sat ? 25 + Math.random() * 30 : 2 + Math.random() * 3).toFixed(1);
+    let internet = Math.random() < 0.02 ? null
+      : 18 + 6 * Math.sin(t / 40) + Math.random() * 6 + (sat ? 120 + Math.random() * 80 : 0);
+    if (internet != null) internet = +internet.toFixed(1);
+    return [t, router, internet, +(8 + Math.random() * 12).toFixed(1)];
+  }
+  // 10 minutos de historia ya rellenos, para que la gráfica no salga vacía.
+  for (let t = T0 - 600; t < T0; t += 5) historial.push(muestra(t));
+
+  function trafico(t, dt) {
+    for (const [mac, ip, , , b, s] of equipos(t)) {
+      const f = Math.max(0, 1 + 0.8 * Math.sin(t / 23 + (parseInt(ip.split(".")[3], 10) % 7)) + (Math.random() - 0.5) * 0.5);
+      uso[mac] = [b * f * 1e6, s * f * 1e6];
+      const h = (hoy[mac] ??= [0, 0]);
+      h[0] += (uso[mac][0] / 8) * dt;
+      h[1] += (uso[mac][1] / 8) * dt;
+    }
+  }
+
+  function evaluar() {
+    const nuevas = {};
+    const al = (id, nivel, titulo, detalle, consejo) => (nuevas[id] = { id, nivel, titulo, detalle, consejo });
+    const reciente = historial.slice(-12);
+    const latI = media(reciente.map((x) => x[2])), latR = media(reciente.map((x) => x[1]));
+    if (latI != null && latI > 150)
+      al("latencia", "medio", "Internet va lento", `La latencia media a internet es de ${Math.round(latI)} ms (lo normal: < 50 ms).`,
+        "Mira abajo qué dispositivo está gastando más ahora mismo: una descarga o una copia en la nube satura la conexión.");
+    if (latR != null && latR > 30)
+      al("wifi", "medio", "El Wi-Fi va saturado o con mala señal", `El router tarda ${Math.round(latR)} ms en responder (lo normal: < 10 ms).`,
+        "Acerca este equipo al router o usa cable. Cambia el canal Wi-Fi en el router, o usa la banda de 5 GHz.");
+    let sinNombre = 0;
+    for (const [mac, ip, , red, , , puertos] of equipos()) {
+      const nombre = nombres[mac] || red || ip;
+      if (!nombres[mac]) {
+        sinNombre++;
+        if (mac === INTRUSO[0])
+          al(`nuevo:${mac}`, "medio", "Dispositivo nuevo en la red", `${nombre} (${ip}, ${mac}) se ha conectado por primera vez.`,
+            "Si es de alguien de casa, ponle nombre en la lista. Si nadie lo reconoce, cambia la contraseña del Wi-Fi.");
+      }
+      for (const p of puertos)
+        al(`puerto:${mac}:${p}`, "alto", `${nombre}: puerto ${p} abierto`, `${DESC[p]} accesible desde la red de casa.`,
+          "Si no lo usas, desactívalo en ese equipo (o en el router si es el router). Si lo usas, pon una contraseña fuerte y no lo abras a internet.");
+    }
+    if (sinNombre)
+      al("sin_nombre", "info", `${sinNombre} dispositivo(s) sin nombre`, "Ponerles nombre ayuda a detectar intrusos.",
+        "Toca el nombre de cada dispositivo en la lista para cambiarlo.");
+    const ahora = AHORA();
+    for (const [id, a] of Object.entries(nuevas)) a.desde = alertas[id]?.desde ?? ahora;
+    for (const [id, a] of Object.entries(alertas))
+      if (!nuevas[id] && a.nivel !== "info") recientes.unshift({ ...a, hasta: ahora });
+    recientes.length = Math.min(recientes.length, 10);
+    alertas = nuevas;
+  }
+
+  function analisis(disp) {
+    const items = [];
+    const it = (estado, titulo, detalle, consejo = "", peso = 0) => items.push({ estado, titulo, detalle, consejo, peso });
+    const h = historial.slice(-720);
+    const perdida = (100 * h.filter((x) => x[2] == null).length) / h.length;
+    it(perdida < 1 ? "ok" : perdida < 5 ? "mejorar" : "mal", "Estabilidad de la conexión",
+      `${perdida.toFixed(1)}% de cortes en los últimos ${Math.round((h.length * 5) / 60)} min.`,
+      "Muchos cortes suelen ser del router o de la línea. Reinicia el router; si continúa, revisa el cable de fibra/ADSL y avisa a tu proveedor.", 20);
+    const lat = media(h.map((x) => x[2]));
+    it(lat < 50 ? "ok" : lat < 100 ? "mejorar" : "mal", "Rapidez de respuesta de internet (ping)",
+      `${Math.round(lat)} ms de media (bueno: menos de 50 ms).`,
+      "Un ping alto se nota en juegos y videollamadas. Suele subir cuando alguien descarga o sube algo grande: mira quién consume más.", 15);
+    const latR = media(h.map((x) => x[1]));
+    it(latR < 10 ? "ok" : latR < 30 ? "mejorar" : "mal", "Calidad del Wi-Fi",
+      `El router responde en ${Math.round(latR)} ms de media (bueno: menos de 10 ms).`,
+      "Pon el router en un sitio alto y despejado, lejos de microondas y del suelo. Usa la banda de 5 GHz cerca del router y cable para la tele y la consola. En casas grandes, un sistema Wi-Fi mesh ayuda.", 15);
+    const dns = media(h.map((x) => x[3]));
+    it(dns > 60 ? "mejorar" : "ok", "DNS (traducir nombres de webs)", `${Math.round(dns)} ms de media, 0 fallos.`,
+      "Pon en el router los DNS 1.1.1.1 y 9.9.9.9.", 10);
+    const r = velocidad.bajada / CONTRATADA;
+    it(r >= 0.8 ? "ok" : r >= 0.5 ? "mejorar" : "mal", "Velocidad de internet",
+      `${Math.round(velocidad.bajada)} Mb/s de bajada y ${Math.round(velocidad.subida)} Mb/s de subida. Contratado: ${CONTRATADA} Mb/s (${Math.round(100 * r)}%).`,
+      "Por Wi-Fi es normal perder velocidad. Si con cable tampoco llega al 80%, reinicia el router y, si sigue, reclama al proveedor.", 15);
+    const conPuertos = disp.filter((d) => d.puertos.length && d.en_linea);
+    it(conPuertos.length ? "mal" : "ok", "Puertos peligrosos abiertos",
+      conPuertos.map((d) => `${d.nombre || d.ip}: ${d.puertos.map((p) => p.puerto).join(", ")}`).join("; "),
+      "Desactiva en cada equipo los servicios que no uses (compartir carpetas, escritorio remoto…). Si es el router, hazlo desde su panel de administración.", 15);
+    it("mejorar", "UPnP en el router", "Está activado: cualquier programa de casa puede abrir puertos hacia internet sin preguntar.",
+      "Entra al panel del router y desactiva UPnP. Si alguna consola deja de funcionar online, vuelve a activarlo o abre solo sus puertos a mano.", 5);
+    const sin = disp.filter((d) => d.en_linea && !d.nombre).length;
+    it(sin ? "mejorar" : "ok", "Dispositivos identificados", `${disp.length - sin} de ${disp.length} conectados tienen nombre.`,
+      "Pon nombre a cada dispositivo: si aparece uno que nadie conoce, cambia la contraseña del Wi-Fi (WPA2/WPA3, mínimo 12 caracteres).", 5);
+    const total = disp.reduce((a, d) => a + d.hoy_bajada + d.hoy_subida, 0);
+    const top = disp.reduce((a, d) => (d.hoy_bajada + d.hoy_subida > a.hoy_bajada + a.hoy_subida ? d : a));
+    it("info", "Quién más ha gastado hoy", `${top.nombre || top.ip}: ${Math.round((100 * (top.hoy_bajada + top.hoy_subida)) / total)}% del consumo de hoy.`);
+    let nota = 100;
+    for (const x of items) nota -= x.estado === "mal" ? x.peso : x.estado === "mejorar" ? x.peso / 2 : 0;
+    nota = Math.max(0, Math.round(nota));
+    const orden = { mal: 0, mejorar: 1, info: 2, ok: 3 };
+    items.sort((a, b) => orden[a.estado] - orden[b.estado]);
+    return { nota, etiqueta: nota >= 85 ? "Buena" : nota >= 60 ? "Mejorable" : "Mala", items };
+  }
+
+  function estado() {
+    const disp = equipos().map(([mac, ip, , red, , , puertos]) => ({
+      mac, ip, nombre: nombres[mac] || "", nombre_red: red, en_linea: true,
+      privada: (parseInt(mac.slice(0, 2), 16) & 2) !== 0, es_router: ip === ROUTER, es_este_equipo: ip === "192.168.1.10",
+      puertos: puertos.map((p) => ({ puerto: p, desc: DESC[p] })),
+      bajada_bps: uso[mac]?.[0] ?? 0, subida_bps: uso[mac]?.[1] ?? 0,
+      hoy_bajada: hoy[mac]?.[0] ?? 0, hoy_subida: hoy[mac]?.[1] ?? 0,
+      primera_vez: mac === INTRUSO[0] ? intrusoDesde : T0 - 86400 * 30, ultima_vez: AHORA(),
+    }));
+    disp.sort((a, b) => b.bajada_bps + b.subida_bps - (a.bajada_bps + a.subida_bps));
+    const lista = Object.values(alertas).sort((a, b) => NIVELES[a.nivel] - NIVELES[b.nivel] || a.desde - b.desde);
+    const peor = lista[0]?.nivel;
+    const graves = lista.filter((a) => a.nivel !== "info").length;
+    const ultimo = historial[historial.length - 1];
+    const ventana = historial.slice(-60);
+    return {
+      modo: "demo", actualizado: ultimo[0],
+      red: { ip_local: "192.168.1.10", router: ROUTER, subred: "192.168.1.0/24", wifi: "MiFibra-A3F2" },
+      resumen: peor === "critico" ? { estado: "problema", texto: lista[0].titulo }
+        : graves ? { estado: "aviso", texto: `${graves} cosa(s) a revisar` } : { estado: "ok", texto: "Todo funciona bien" },
+      actual: { router_ms: ultimo[1], internet_ms: ultimo[2], dns_ms: ultimo[3],
+        perdida_pct: (100 * ventana.filter((x) => x[2] == null).length) / ventana.length, en_linea: disp.length },
+      historial: historial.slice(-120).map((x) => [Math.round(x[0]), x[1], x[2], x[3]]),
+      alertas: lista, recientes, dispositivos: disp,
+      trafico: { activo: true, mensaje: null },
+      velocidad: { ...velocidad, contratada: CONTRATADA },
+      uso: { bajada_bps: disp.reduce((a, d) => a + d.bajada_bps, 0), subida_bps: disp.reduce((a, d) => a + d.subida_bps, 0),
+        hoy: disp.reduce((a, d) => a + d.hoy_bajada + d.hoy_subida, 0) },
+      analisis: analisis(disp),
+    };
+  }
+
+  let ultimoTick = AHORA();
+  function tick() {
+    const t = AHORA();
+    historial.push(muestra(t));
+    if (historial.length > 720) historial.shift();
+    trafico(t, t - ultimoTick);
+    ultimoTick = t;
+    evaluar();
+  }
+  tick();
+  setInterval(tick, 2000);
+
+  const json = (obj, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
+  const fetchReal = window.fetch.bind(window);
+  window.fetch = async (url, opciones = {}) => {
+    const ruta = String(url);
+    if (ruta.startsWith("/api/estado")) return json(estado());
+    if (ruta.startsWith("/api/velocidad")) {
+      if (velocidad.midiendo || AHORA() - velocidad.ts < 60) return json({ ok: false });
+      velocidad.midiendo = true;
+      setTimeout(() => {
+        const lento = saturado(AHORA()) ? 0.45 : 1;
+        Object.assign(velocidad, { bajada: lento * (480 + Math.random() * 80), subida: lento * (250 + Math.random() * 50),
+          ts: AHORA(), midiendo: false });
+      }, 4000);
+      return json({ ok: true });
+    }
+    if (ruta.startsWith("/api/nombre")) {
+      const d = JSON.parse(opciones.body || "{}");
+      nombres[d.mac] = String(d.nombre || "").trim().slice(0, 40);
+      evaluar();
+      return json({ ok: true });
+    }
+    return fetchReal(url, opciones);
+  };
+})();
+
+"use strict";
+
+const NIVEL = { critico: "Crítico", alto: "Importante", medio: "Aviso", info: "Info" };
+const ICONOS = {
+  ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  aviso: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v8M12 18.5v.01"/></svg>',
+  problema: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>',
+};
+const $ = (id) => document.getElementById(id);
+const SVGNS = "http://www.w3.org/2000/svg";
+
+// Crea elementos con textContent: los nombres vienen de la red y no son de fiar.
+function el(tag, props = {}, ...hijos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v !== undefined && v !== null && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const h of hijos.flat()) if (h != null) e.append(h.nodeType ? h : String(h));
+  return e;
+}
+function svg(tag, attrs = {}) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+
+const ms = (v) => (v == null ? null : v < 10 ? v.toFixed(1) : Math.round(v).toString());
+function velocidad(bps) {
+  if (!bps || bps < 1000) return "0 kb/s";
+  if (bps < 1e6) return `${Math.round(bps / 1e3)} kb/s`;
+  return `${(bps / 1e6).toFixed(bps < 1e7 ? 1 : 0)} Mb/s`;
+}
+function bytes(b) {
+  if (!b) return "0 MB";
+  if (b < 1e9) return `${(b / 1e6).toFixed(b < 1e7 ? 1 : 0)} MB`;
+  return `${(b / 1e9).toFixed(2)} GB`;
+}
+function hace(ts) {
+  const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 60) return "hace un momento";
+  if (s < 3600) return `hace ${Math.round(s / 60)} min`;
+  if (s < 86400) return `hace ${Math.round(s / 3600)} h`;
+  return `hace ${Math.round(s / 86400)} días`;
+}
+function hora(ts) {
+  return new Date(ts * 1000).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+function valorCifra(id, texto, unidad) {
+  const nodo = $(id);
+  nodo.replaceChildren(texto ?? "–");
+  if (texto != null && unidad) nodo.append(el("small", {}, unidad));
+}
+
+// ------------------------------------------------------------------ cabecera
+function pintarResumen(d) {
+  $("demo").hidden = d.modo !== "demo";
+  const r = d.red;
+  const enLinea = d.dispositivos.filter((x) => x.en_linea).length;
+  $("red").textContent = r.router
+    ? `${r.wifi ? `Wi-Fi «${r.wifi}»` : `Red ${r.subred ?? ""}`} · ${enLinea} dispositivos conectados`
+    : "No se encuentra el router";
+  const est = d.resumen.estado;
+  $("estado").dataset.estado = est;
+  $("estado-icono").innerHTML = ICONOS[est]; // contenido fijo, no viene de la red
+  $("estado-titulo").textContent = d.resumen.texto;
+  const graves = d.alertas.filter((a) => a.nivel !== "info");
+  $("estado-sub").textContent =
+    est === "ok" ? "Internet, Wi-Fi y DNS responden con normalidad." : graves.map((a) => a.titulo).join(" · ");
+
+  const a = d.actual;
+  valorCifra("c-internet", a.internet_ms == null ? "Sin respuesta" : ms(a.internet_ms), a.internet_ms == null ? "" : "ms");
+  valorCifra("c-router", a.router_ms == null ? "Sin respuesta" : ms(a.router_ms), a.router_ms == null ? "" : "ms");
+  valorCifra("c-perdida", a.perdida_pct == null ? null : Math.round(a.perdida_pct).toString(), "%");
+  valorCifra("c-dns", a.dns_ms == null ? "Falla" : ms(a.dns_ms), a.dns_ms == null ? "" : "ms");
+
+  const an = d.analisis;
+  $("nota").hidden = false;
+  $("nota-num").textContent = an.nota;
+  $("nota-txt").textContent = an.etiqueta;
+
+  $("datos-red").replaceChildren(
+    ...[["Wi-Fi", r.wifi || "desconocido (¿equipo por cable?)"], ["Router", r.router || "–"],
+        ["Red", r.subred || "–"], ["Este equipo", r.ip_local || "–"],
+        ["Actualizado", d.actualizado ? hora(d.actualizado) : "–"]]
+      .flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)]));
+}
+
+// ----------------------------------------------------------------- velocidad
+function pintarVelocidad(d) {
+  const v = d.velocidad;
+  const cifra = (id, mbps) => {
+    $(id).replaceChildren(mbps == null ? "–" : String(Math.round(mbps)));
+    if (mbps != null) $(id).append(el("small", {}, "Mb/s"));
+  };
+  cifra("v-bajada", v.bajada);
+  cifra("v-subida", v.subida);
+  let nota;
+  if (v.midiendo) nota = "Midiendo la velocidad… (unos 15 segundos)";
+  else if (v.error) nota = v.error;
+  else if (v.ts) {
+    nota = `Medido ${hace(v.ts)}`;
+    if (v.contratada && v.bajada != null) nota += ` · ${Math.round((100 * v.bajada) / v.contratada)}% de los ${v.contratada} Mb/s contratados`;
+  } else nota = "Pendiente de la primera medición.";
+  $("v-nota").textContent = nota;
+  const boton = $("medir");
+  boton.disabled = v.midiendo;
+  boton.textContent = v.midiendo ? "Midiendo…" : "Medir ahora";
+
+  $("uso").hidden = !d.trafico.activo;
+  $("uso-ahora").textContent = `↓ ${velocidad(d.uso.bajada_bps)} · ↑ ${velocidad(d.uso.subida_bps)}`;
+  $("uso-hoy").textContent = bytes(d.uso.hoy);
+}
+
+// ------------------------------------------------------------------ análisis
+const ICONO_CHECK = { ok: "✓", mejorar: "!", mal: "✕", info: "i" };
+function pintarAnalisis(an) {
+  $("analisis-nota").textContent = `Nota ${an.nota}/100 · ${an.etiqueta}`;
+  const lista = $("checks");
+  lista.replaceChildren(...an.items.map((it) =>
+    el("li", { "data-e": it.estado },
+      el("span", { class: "ic", "aria-label": it.estado }, ICONO_CHECK[it.estado]),
+      el("div", {},
+        el("div", { class: "t" }, it.titulo),
+        el("div", { class: "d" }, it.detalle),
+        it.consejo && it.estado !== "ok" && it.estado !== "info"
+          ? el("details", { "data-id": it.titulo }, el("summary", {}, "Qué hacer"), el("p", {}, it.consejo))
+          : null))));
+  lista.querySelectorAll("details").forEach((det) => {
+    const id = "a:" + det.dataset.id;
+    det.open = abiertos.has(id);
+    det.addEventListener("toggle", () => (det.open ? abiertos.add(id) : abiertos.delete(id)));
+  });
+}
+
+// ------------------------------------------------------------------- gráfica
+let puntos = [];
+function pintarGrafica(historial) {
+  const caja = $("svg");
+  const W = caja.clientWidth || 600, H = 200;
+  const M = { izq: 34, der: 62, arr: 8, aba: 22 };
+  const ahora = historial.length ? historial[historial.length - 1][0] : Date.now() / 1000;
+  const t0 = ahora - 600;
+  const datos = historial.filter((p) => p[0] >= t0);
+  const maximo = Math.max(20, ...datos.flatMap((p) => [p[1] ?? 0, p[2] ?? 0]));
+  const paso = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => maximo / s <= 4) || 1000;
+  const yMax = Math.ceil(maximo / paso) * paso;
+  const x = (t) => M.izq + ((t - t0) / 600) * (W - M.izq - M.der);
+  const y = (v) => M.arr + (1 - v / yMax) * (H - M.arr - M.aba);
+
+  caja.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  caja.replaceChildren();
+  for (let v = 0; v <= yMax; v += paso) {
+    caja.append(svg("line", { class: v === 0 ? "base" : "rejilla", x1: M.izq, x2: W - M.der, y1: y(v), y2: y(v) }));
+    const t = svg("text", { class: "eje", x: M.izq - 6, y: y(v) + 4, "text-anchor": "end" });
+    t.textContent = v;
+    caja.append(t);
+  }
+  for (const [min, ancla] of [[10, "start"], [5, "middle"], [0, "end"]]) {
+    const t = svg("text", { class: "eje", x: x(ahora - min * 60), y: H - 4, "text-anchor": ancla });
+    t.textContent = min ? `-${min} min` : "ahora";
+    caja.append(t);
+  }
+  const series = [
+    { idx: 2, clase: "c2", nombre: "Internet" },
+    { idx: 1, clase: "c1", nombre: "Router" },
+  ];
+  const etiquetas = [];
+  for (const s of series) {
+    let d = "", dentro = false, ultimo = null;
+    for (const p of datos) {
+      const v = p[s.idx];
+      if (v == null) { dentro = false; continue; } // hueco = sin respuesta
+      d += `${dentro ? "L" : "M"}${x(p[0]).toFixed(1)},${y(v).toFixed(1)}`;
+      dentro = true;
+      ultimo = p;
+    }
+    caja.append(svg("path", { class: `linea ${s.clase}`, d }));
+    if (ultimo) etiquetas.push({ s, yv: y(ultimo[s.idx]), v: ultimo[s.idx] });
+  }
+  // Etiquetas directas al final de cada línea, separadas si se pisan.
+  etiquetas.sort((a, b) => a.yv - b.yv);
+  for (let i = 1; i < etiquetas.length; i++) {
+    if (etiquetas[i].yv - etiquetas[i - 1].yv < 14) etiquetas[i].yv = etiquetas[i - 1].yv + 14;
+  }
+  for (const e of etiquetas) {
+    const t = svg("text", { class: "etq", x: W - M.der + 6, y: Math.min(H - M.aba, e.yv) + 4 });
+    t.textContent = `${e.s.nombre} ${ms(e.v)}`;
+    caja.append(t);
+  }
+  const cruz = svg("line", { class: "cruz", y1: M.arr, y2: H - M.aba, visibility: "hidden" });
+  caja.append(cruz);
+  const marcas = series.map((s) => {
+    const c = svg("circle", { class: `punto ${s.clase}`, r: 4, visibility: "hidden" });
+    caja.append(c);
+    return c;
+  });
+  puntos = { datos, x, y, series, cruz, marcas, M, W };
+}
+
+function moverCursor(ev) {
+  const { datos, x, y, series, cruz, marcas, M, W } = puntos;
+  if (!datos || !datos.length) return;
+  const caja = $("svg").getBoundingClientRect();
+  const px = ((ev.clientX - caja.left) / caja.width) * W;
+  if (px < M.izq || px > W - M.der) return ocultarCursor();
+  let mejor = datos[0];
+  for (const p of datos) if (Math.abs(x(p[0]) - px) < Math.abs(x(mejor[0]) - px)) mejor = p;
+  const cx = x(mejor[0]);
+  cruz.setAttribute("x1", cx); cruz.setAttribute("x2", cx); cruz.setAttribute("visibility", "visible");
+  series.forEach((s, i) => {
+    const v = mejor[s.idx];
+    if (v == null) return marcas[i].setAttribute("visibility", "hidden");
+    marcas[i].setAttribute("cx", cx); marcas[i].setAttribute("cy", y(v));
+    marcas[i].setAttribute("visibility", "visible");
+  });
+  const tip = $("tooltip");
+  tip.replaceChildren(
+    el("b", {}, hora(mejor[0])),
+    ...series.map((s) => el("div", { class: `fila ${s.clase}` },
+      `${s.nombre}: ${mejor[s.idx] == null ? "sin respuesta" : ms(mejor[s.idx]) + " ms"}`)),
+    el("div", {}, `DNS: ${mejor[3] == null ? "falla" : ms(mejor[3]) + " ms"}`),
+  );
+  tip.style.display = "block";
+  const izq = (cx / W) * caja.width;
+  tip.style.left = `${Math.min(izq + 12, caja.width - tip.offsetWidth)}px`;
+  tip.style.top = "8px";
+}
+function ocultarCursor() {
+  if (!puntos.cruz) return;
+  puntos.cruz.setAttribute("visibility", "hidden");
+  puntos.marcas.forEach((m) => m.setAttribute("visibility", "hidden"));
+  $("tooltip").style.display = "none";
+}
+
+// ------------------------------------------------------------------- fallos
+function pintarAlertas(alertas, recientes) {
+  const lista = $("alertas");
+  lista.replaceChildren(
+    ...(alertas.length
+      ? alertas.map((a) =>
+          el("li", { class: "alerta", "data-nivel": a.nivel },
+            el("div", { class: "t" }, el("span", {}, a.titulo), el("span", { class: "nivel" }, NIVEL[a.nivel])),
+            el("div", { class: "d" }, a.detalle, " ", el("span", { class: "tenue" }, `(${hace(a.desde)})`)),
+            el("details", {}, el("summary", {}, "Cómo arreglarlo"), el("p", {}, a.consejo))))
+      : [el("li", { class: "vacio" }, "No hay ningún fallo ahora mismo.")]),
+  );
+  // Conservar desplegados los "Cómo arreglarlo" abiertos entre refrescos.
+  lista.querySelectorAll("details").forEach((det, i) => {
+    const id = alertas[i]?.id;
+    det.open = abiertos.has(id);
+    det.addEventListener("toggle", () => (det.open ? abiertos.add(id) : abiertos.delete(id)));
+  });
+  $("recientes").hidden = !recientes.length;
+  $("recientes-lista").replaceChildren(
+    ...recientes.map((a) => el("li", {}, `${a.titulo} — resuelto ${hace(a.hasta)}`)),
+  );
+}
+const abiertos = new Set();
+
+// -------------------------------------------------------------- dispositivos
+let editando = false;
+function pintarDispositivos(lista, trafico) {
+  if (editando) return; // no pisar lo que alguien está escribiendo
+  const aviso = $("aviso-trafico");
+  aviso.hidden = trafico.activo;
+  aviso.textContent = trafico.activo ? "" :
+    `El consumo por dispositivo no está disponible: ${trafico.mensaje || "desactivado"}. ` +
+    "Mira el README para activarlo.";
+  const max = Math.max(1, ...lista.map((d) => d.bajada_bps + d.subida_bps));
+  $("n-disp").textContent = `· ${lista.filter((d) => d.en_linea).length} conectados`;
+
+  $("dispositivos").replaceChildren(...lista.map((d) => {
+    const titulo = d.nombre || d.nombre_red || "Sin nombre";
+    const boton = el("button", { class: d.nombre ? "" : "sin", title: "Cambiar nombre", onclick: () => editar(boton, d) }, titulo);
+    const chips = [];
+    if (d.es_router) chips.push(el("span", { class: "chip" }, "router"));
+    if (d.es_este_equipo) chips.push(el("span", { class: "chip" }, "este equipo"));
+    for (const p of d.puertos) chips.push(el("span", { class: "chip peligro", title: p.desc }, `puerto ${p.puerto}`));
+    const meta = [d.ip, d.mac, d.privada ? "MAC privada (móvil/tablet)" : null,
+                  d.en_linea ? null : `visto ${hace(d.ultima_vez)}`].filter(Boolean).join(" · ");
+
+    const barra = el("div", { class: "barra", title: `Bajada ${velocidad(d.bajada_bps)} · Subida ${velocidad(d.subida_bps)}` });
+    const b = el("i", { class: "b" }), s = el("i", { class: "s" });
+    b.style.width = `${(d.bajada_bps / max) * 100}%`;
+    s.style.width = `${(d.subida_bps / max) * 100}%`;
+    barra.append(b, s);
+
+    return el("div", { class: `disp${d.en_linea ? "" : " apagado"}` },
+      el("div", { class: "quien" },
+        el("div", { class: "nom" }, el("span", { class: `punto-linea${d.en_linea ? " on" : ""}`, title: d.en_linea ? "Conectado" : "Desconectado" }), boton, ...chips),
+        el("div", { class: "meta" }, meta)),
+      el("div", { class: "barra-wrap" }, trafico.activo ? barra : null),
+      el("div", { class: "consumo" },
+        trafico.activo ? [el("div", {}, `↓ ${velocidad(d.bajada_bps)}`), el("div", {}, `↑ ${velocidad(d.subida_bps)}`),
+                          el("div", { class: "total" }, `${bytes(d.hoy_bajada + d.hoy_subida)} hoy`)]
+                       : el("span", { class: "tenue" }, "–")));
+  }));
+}
+
+function editar(boton, d) {
+  editando = true;
+  const input = el("input", { value: d.nombre, maxlength: 40, placeholder: "Ej.: Móvil de Ana", "aria-label": "Nombre del dispositivo" });
+  let hecho = false;
+  const terminar = async (guardar) => {
+    if (hecho) return;
+    hecho = true;
+    if (guardar) {
+      await fetch("/api/nombre", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mac: d.mac, nombre: input.value }) });
+    }
+    editando = false;
+    actualizar();
+  };
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") terminar(true);
+    if (e.key === "Escape") terminar(false);
+  });
+  input.addEventListener("blur", () => terminar(true));
+  boton.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+// ------------------------------------------------------------------- bucle
+let ultimo = null;
+async function actualizar() {
+  try {
+    const r = await fetch("/api/estado", { cache: "no-store" });
+    if (r.status === 401) return (location.href = "/login");
+    const d = await r.json();
+    ultimo = d;
+    pintarResumen(d);
+    pintarGrafica(d.historial);
+    pintarAlertas(d.alertas, d.recientes);
+    pintarDispositivos(d.dispositivos, d.trafico);
+    pintarVelocidad(d);
+    pintarAnalisis(d.analisis);
+  } catch (e) {
+    $("estado").dataset.estado = "problema";
+    $("estado-icono").innerHTML = ICONOS.problema;
+    $("estado-titulo").textContent = "No se puede contactar con el monitor";
+    $("estado-sub").textContent = "¿Está encendido el equipo que lo ejecuta? ¿Sigues conectado al Wi-Fi de casa?";
+  }
+}
+
+$("medir").addEventListener("click", async () => {
+  $("medir").disabled = true;
+  $("medir").textContent = "Midiendo…";
+  const r = await (await fetch("/api/velocidad", { method: "POST" })).json().catch(() => ({}));
+  if (!r.ok) {
+    $("v-nota").textContent = "Se acaba de medir: espera un minuto para repetirlo.";
+    $("medir").disabled = false;
+    $("medir").textContent = "Medir ahora";
+    return;
+  }
+  actualizar();
+});
+$("grafica").addEventListener("pointermove", moverCursor);
+$("grafica").addEventListener("pointerleave", ocultarCursor);
+window.addEventListener("resize", () => ultimo && pintarGrafica(ultimo.historial));
+actualizar();
+setInterval(actualizar, 3000);
+
+</script>
+</body>
+</html>

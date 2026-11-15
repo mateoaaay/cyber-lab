@@ -32,6 +32,12 @@ Red del lab: Host-only VMnet1, `192.168.163.0/24`, aislada de internet.
 | Lab 5 | Tráfico en claro frente a cifrado | Pendiente |
 | Lab 6 | Writeup final | Pendiente |
 
+## Proyectos
+
+| Proyecto | Qué es |
+|----------|--------|
+| [Monitor de la red de casa](monitor-red-casa/) | App para el móvil de la familia: análisis de la red de casa con velocidad, dispositivos, consumo, fallos y recomendaciones |
+
 ## Método de cada lab
 
 1. Escribir una predicción antes de ejecutar nada.
