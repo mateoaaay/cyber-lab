@@ -43,6 +43,12 @@ MONITOR_CLAVE=prueba python3 app.py --demo
 
 Abre <http://localhost:8080> y entra con `prueba`. La velocidad se mide sola a los 20 s. A los 30 s aparece un "intruso" con Telnet abierto. Cada 3 minutos el Wi-Fi simulado se satura 40 s, para que veas los avisos.
 
+## Demo para compartir con un link
+
+`web-demo/index.html` es la app completa en un solo archivo, con una red simulada que corre en el navegador. Sirve para que alguien vea cómo es sin instalar nada. **No analiza la red de quien la abre:** un navegador no deja que una web vea los dispositivos o los puertos de tu red.
+
+Para regenerarla después de cambiar la app: `python3 web-demo/construir.py`.
+
 ## Instalarla en casa
 
 Necesita un equipo que esté siempre encendido y conectado a la red de casa. Lo ideal es una Raspberry Pi; un PC también sirve. Solo hace falta Python 3.9 o superior, sin librerías extra.
