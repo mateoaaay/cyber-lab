@@ -160,6 +160,8 @@ def _arreglo_borrar(srv: Servicio, m: Mapeo):
 
 def hallazgos_upnp(urls: list[str] | None = None) -> list[Hallazgo]:
     res = []
+    routers_vistos: set[str] = set()   # un router puede anunciarse varias veces (IGD v1 y v2)
+    mapeos_vistos: set[tuple] = set()
     for url in (descubrir_igd() if urls is None else urls):
         try:
             srv = obtener_servicio(url)
@@ -168,13 +170,19 @@ def hallazgos_upnp(urls: list[str] | None = None) -> list[Hallazgo]:
         if not srv:
             continue
         router = urllib.parse.urlsplit(url).hostname or "router"
-        res.append(Hallazgo(
-            codigo="UPNP-ACTIVO", gravedad="media", titulo="El router tiene UPnP activado", objetivo=router,
-            detalle="Cualquier programa o dispositivo de tu red puede abrir puertos hacia internet "
-                    "sin pedirte permiso ni contraseña.",
-            recomendacion="Entra al panel del router y desactiva UPnP (suele estar en NAT, Avanzado o "
-                          "Reenvío de puertos). Si una consola o un juego lo necesita, abre solo ese puerto a mano."))
+        if router not in routers_vistos:
+            routers_vistos.add(router)
+            res.append(Hallazgo(
+              codigo="UPNP-ACTIVO", gravedad="media", titulo="El router tiene UPnP activado", objetivo=router,
+              detalle="Cualquier programa o dispositivo de tu red puede abrir puertos hacia internet "
+                      "sin pedirte permiso ni contraseña.",
+              recomendacion="Entra al panel del router y desactiva UPnP (suele estar en NAT, Avanzado o "
+                            "Reenvío de puertos). Si una consola o un juego lo necesita, abre solo ese puerto a mano."))
         for m in listar_mapeos(srv):
+            clave = (router, m.puerto_externo, m.protocolo)
+            if clave in mapeos_vistos:
+                continue
+            mapeos_vistos.add(clave)
             res.append(Hallazgo(
                 codigo="UPNP-MAPEO", gravedad="alta", titulo="Puerto abierto hacia internet mediante UPnP",
                 objetivo=f"{router} → {m.cliente}",

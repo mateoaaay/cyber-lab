@@ -110,6 +110,10 @@ class TestUPnP(unittest.TestCase):
         self.assertIn("8080/TCP", hs[1].arreglo())
         self.assertEqual(RouterFalso.mapeos, [(5000, "UDP", "192.168.1.60", 5000)])
 
+    def test_router_anunciado_dos_veces_no_duplica(self):
+        hs = upnp.hallazgos_upnp([self.url, self.url.replace("desc.xml", "desc2.xml")])
+        self.assertEqual([h.codigo for h in hs], ["UPNP-ACTIVO", "UPNP-MAPEO", "UPNP-MAPEO"])
+
     def test_ignora_descripciones_fuera_de_la_lan(self):
         self.assertFalse(upnp._es_local("http://8.8.8.8/desc.xml"))
         self.assertTrue(upnp._es_local("http://192.168.1.1:5000/desc.xml"))
