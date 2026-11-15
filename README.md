@@ -34,10 +34,11 @@ Red del lab: Host-only VMnet1, `192.168.163.0/24`, aislada de internet.
 
 ## Proyectos
 
-Además de los labs guiados, aquí van proyectos propios donde aplico lo aprendido.
+Además de los labs guiados, aquí van proyectos propios donde aplico lo aprendido. Son proyectos de aprendizaje, no herramientas profesionales.
 
 | Proyecto | Descripción | Estado |
 |----------|-------------|--------|
+| [monitor-red-casa](monitor-red-casa/) | App web para el móvil que muestra el estado de la red de casa: velocidad, dispositivos conectados, consumo, fallos y recomendaciones | Proyecto de aprendizaje, en desarrollo |
 | [auditor-red-casa](auditor-red-casa/) | Script en Python que detecta fallos de seguridad en mi red doméstica y arregla los que se pueden automatizar | Proyecto de aprendizaje, en desarrollo |
 
 ## Método de cada lab
@@ -48,7 +49,7 @@ Además de los labs guiados, aquí van proyectos propios donde aplico lo aprendi
 
 ## Aviso
 
-Los labs se realizan en un entorno aislado y sobre máquinas propias. El proyecto `auditor-red-casa` se ejecuta únicamente sobre mi propia red doméstica. No se escanea ni se ataca ningún sistema sin autorización.
+Los labs se realizan en un entorno aislado y sobre máquinas propias. Los proyectos `monitor-red-casa` y `auditor-red-casa` se ejecutan únicamente sobre mi propia red doméstica. No se escanea ni se ataca ningún sistema sin autorización.
 
 Este repositorio es material de aprendizaje personal, no una herramienta ni un servicio profesional.
 
