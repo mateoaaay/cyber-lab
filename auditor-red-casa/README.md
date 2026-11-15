@@ -2,6 +2,8 @@
 
 Herramienta que revisa la red de casa en busca de los fallos por los que podría colarse alguien, aplica sola los arreglos que se pueden automatizar y deja un informe con lo que hay que cambiar a mano.
 
+> **Proyecto personal de aprendizaje.** No es un producto ni una herramienta profesional de seguridad: no sustituye a una auditoría real y no detecta todos los fallos posibles. Ver [Estado del proyecto](#estado-del-proyecto).
+
 Python 3 sin dependencias externas; solo necesita `nmap` instalado. Pensada para ejecutarse en Linux (Kali o Ubuntu) conectado a la red que se quiere auditar.
 
 ## Uso
@@ -69,6 +71,16 @@ Para una revisión diaria a las 20:00 con arreglo automático, añade esta líne
 ```
 0 20 * * * cd /ruta/a/cyber-lab/auditor-red-casa && python3 auditor.py --arreglar --si >> /var/log/auditor-red-casa.log 2>&1
 ```
+
+## Estado del proyecto
+
+- **Qué es:** un proyecto de aprendizaje dentro de mi laboratorio personal, para practicar redes, `nmap`, UPnP y endurecimiento básico de Linux.
+- **Qué no es:** una herramienta profesional. Se ofrece tal cual, sin garantías; revisa siempre lo que va a cambiar antes de usar `--arreglar`.
+- **Probado en:** una única red doméstica (router Livebox de Orange) desde una VM de Ubuntu Server 24.04 en modo bridged. En otros routers puede comportarse distinto.
+- **Cómo se ha hecho:** el código se escribió con ayuda de un asistente de IA (Claude). Mi parte ha sido montar el entorno, ejecutarlo contra mi red, interpretar los resultados y estudiar el código para poder explicarlo y ampliarlo.
+- **Pendiente:** añadir comprobaciones propias, documentar una ejecución real como lab y probarlo en más routers.
+
+Un ejemplo del informe que genera, con datos ficticios: [ejemplo-informe.md](ejemplo-informe.md).
 
 ## Estructura
 

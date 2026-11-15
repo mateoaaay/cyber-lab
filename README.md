@@ -34,9 +34,11 @@ Red del lab: Host-only VMnet1, `192.168.163.0/24`, aislada de internet.
 
 ## Proyectos
 
-| Proyecto | Descripción |
-|----------|-------------|
-| [auditor-red-casa](auditor-red-casa/) | Detecta fallos de seguridad en la red doméstica y arregla los que se pueden automatizar |
+Además de los labs guiados, aquí van proyectos propios donde aplico lo aprendido.
+
+| Proyecto | Descripción | Estado |
+|----------|-------------|--------|
+| [auditor-red-casa](auditor-red-casa/) | Script en Python que detecta fallos de seguridad en mi red doméstica y arregla los que se pueden automatizar | Proyecto de aprendizaje, en desarrollo |
 
 ## Método de cada lab
 
@@ -46,7 +48,9 @@ Red del lab: Host-only VMnet1, `192.168.163.0/24`, aislada de internet.
 
 ## Aviso
 
-Todas las prácticas se realizan en un entorno aislado y sobre máquinas propias. No se escanea ni se ataca ningún sistema sin autorización.
+Los labs se realizan en un entorno aislado y sobre máquinas propias. El proyecto `auditor-red-casa` se ejecuta únicamente sobre mi propia red doméstica. No se escanea ni se ataca ningún sistema sin autorización.
+
+Este repositorio es material de aprendizaje personal, no una herramienta ni un servicio profesional.
 
 ## Autor
 
