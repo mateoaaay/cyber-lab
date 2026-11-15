@@ -32,6 +32,12 @@ Red del lab: Host-only VMnet1, `192.168.163.0/24`, aislada de internet.
 | Lab 5 | Tráfico en claro frente a cifrado | Pendiente |
 | Lab 6 | Writeup final | Pendiente |
 
+## Proyectos
+
+| Proyecto | Descripción |
+|----------|-------------|
+| [auditor-red-casa](auditor-red-casa/) | Detecta fallos de seguridad en la red doméstica y arregla los que se pueden automatizar |
+
 ## Método de cada lab
 
 1. Escribir una predicción antes de ejecutar nada.
